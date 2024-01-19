@@ -1,0 +1,86 @@
+program p
+
+namespace sizes{
+	const int a 10; // Error during const declaration, recovery until semicolon(;)  (line 4)
+	 
+	const char x = 'a', x='v', x'h'; // Error during const declaration, recovery until semicolon(;)  (line 6)
+	int b;
+	int z,,a; // Error during var declaration, recovery to comma(,)  (line 8)
+	{}
+}
+
+class Table {
+
+	static int id;
+	static{
+		id = 0;
+	}
+		{ 
+	{	// Error during local var or class fields declaration, recovery to left brace({)  (line 19)
+		void setfactor(int factor) { this.factor = factor;}
+		void putp (int a, int idx) { this.pos[idx] = a; }
+		void putn (int a, int idx) { this.neg[idx] = a; }
+		int getp (int idx) { return pos[idx]; }
+		int getn (int idx) { return neg[idx]; }
+	}
+}
+
+{
+	
+	int k () int c; {
+		c = 1;
+		return c+2;
+	}
+	
+	int main() {
+		y = 2;
+		x = y + 2;
+		y = k() + 3;
+		print(y);
+		return 0;
+	}
+	void f(char ch, int a, int arg)
+		int x;
+	{
+		[,o5,,*op] = lol; x = arg;
+	}
+	
+	void main(y,) int x, i; char c, int[] arr; //  Error during formal parameters declaration, recovery to comma(,)  (line 48)Error during var declaration, recovery to semicolon(;)  (line 48)
+	{
+		val = new Table();
+		val.setfactor(2);
+		arr = new int[3];
+		for (i=0; i<3; i++) {
+			arr[i] = i;
+		}
+		for (i=0; i<3; i++) print(arr[i]);
+		val.pos = new int [sizes::tableSize];
+		val.neg = new int [sizes::tableSize];
+		read(x);
+		for (;i< sizes::tableSize; i++) {
+			val.putp(0, i);
+			val.putn(0, i);
+		}
+		f(c, x, i);
+		read(rows);
+		x =rows;
+		for (;;x=;){ // Error during assignment construction, recovery to semicolon(;)  (line 67)
+			if(x <= 0) break; 
+			if (0 <= x && x < sizes::tableSize x)// Error during if logic conditions declaration, recovery to right parenthesis(')')  (line 69)
+			{
+				val.putp(val.getp(x)+1);
+			}
+			else if (-sizes::tableSize < x && x < 0)
+			{
+				val.putn(val.getn(-x)+1);
+				x h= 5 // Error during assignment construction, recovery to semicolon(;)  (line 76)
+				
+				;
+				
+				;
+			}
+			read(x); // comment1
+			//comment2
+		}
+	}
+}

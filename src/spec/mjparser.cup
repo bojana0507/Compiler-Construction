@@ -1,0 +1,283 @@
+package rs.ac.bg.etf.pp1;
+
+import java_cup.runtime.*;
+import org.apache.log4j.*;
+import rs.ac.bg.etf.pp1.ast.*;
+
+
+parser code {:
+	
+	boolean errorDetected = false;
+	Logger log = Logger.getLogger(getClass());
+   
+    public void report_fatal_error(String message, Object info) throws java.lang.Exception {
+		done_parsing();
+		report_error(message, info);
+    }
+  
+    public void syntax_error(Symbol cur_token) {
+        report_error("\nSyntax error", cur_token);
+    }
+  
+    public void unrecovered_syntax_error(Symbol cur_token) throws java.lang.Exception {
+        report_fatal_error("Fatal error, parsing cannot continue", cur_token);
+    }
+
+    public void report_error(String message, Object info) {
+    	errorDetected = true;
+    	StringBuilder msg = new StringBuilder(message); 
+    	if (info instanceof Symbol)
+            msg.append (" (line ").append(((Symbol)info).left).append(")");
+        else if (info instanceof Integer) {
+			msg.append (" (line ").append((int)info).append(")");
+		}
+        log.error(msg.toString());
+    }
+    
+:}
+
+scan with {:
+	Symbol s = this.getScanner().next_token();
+	if (s != null && s.value != null) 
+		log.info(s.toString() + " " + s.value.toString());
+	return s;
+:}
+
+
+terminal PROGRAM, BREAK, CLASS, ELSE, CONST, IF, NEW, PRINT, READ, RETURN;
+terminal VOID, EXTENDS, CONTINUE, FOR, STATIC, NAMESPACE, CHARCONST, BOOLCONST;
+terminal PLUS, MINUS, MUL, DIV, MOD, EQUAL, NOT_EQUAL, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL;
+terminal AND, OR, ASSIGN, INC, DEC, SEMI, DOUBLE_COLON, COMMA, DOT, LPAREN, RPAREN, LBRACKET, RBRACKET, LBRACE, RBRACE;
+
+terminal String IDENT;
+terminal Integer NUMCONST;
+
+nonterminal Namespace, GlobalDecls, GlobalDecl, ConstDecl, ConstDecls, ConstDeclSingle, ConstValue, VarDecl, VarDecls, VarDeclSingle, LocalVarDecls, VarArr;
+nonterminal MethodDecls, FormPars, Type, Statements, Statement, DesignStatements, DesignStatement, Designs, Design, DesignPart;
+nonterminal ActPars, Condition, CondTerm, CondFact, Expr, ExprPart, Term, Factor, Relops, Addops, Mulops, ElseStatement;
+nonterminal ClassDecl, Extends, ClassMethodDecls, StaticVarDecl, StaticInitializer, StaticInitializers, StaticThings;
+
+nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program;
+
+precedence left ELSE;
+
+Program 	::= 
+			(Program) ProgName Namespace GlobalDecls LBRACE MethodDecls RBRACE;
+
+ProgName 	::= 
+			(ProgName) PROGRAM IDENT:progName;
+
+Namespace 	::= 
+			(ANamespace) Namespace NAMESPACE IDENT LBRACE GlobalDecls LBRACE MethodDecls RBRACE RBRACE
+			| (NoNamespace) /* epsilon */;
+			
+GlobalDecls ::= 
+			(GlobDecls) GlobalDecls GlobalDecl
+			| (NoGlobDecls) /* epsilon */;
+
+GlobalDecl 	::= 
+			(GlobDeclConst) ConstDecl 
+			| (GlobDeclVar) VarDecl
+			| (GlobDeclClass) ClassDecl;
+
+ConstDecl 	::= 
+			(ConstDecl) CONST Type ConstDecls SEMI;
+
+ConstDeclSingle ::= 
+			(SingleConstDecl) IDENT:name ASSIGN ConstValue;
+
+ConstDecls 	::= 
+			(ListConstDecls) ConstDeclSingle COMMA ConstDecls
+			| (ErrListConstDecls) error:l
+			{: parser.report_error("Error during const declaration, recovery to comma(,) ", lleft); :} 
+			COMMA ConstDecls
+			| (SingleConstDecls) ConstDeclSingle
+			| (ErrSingleConstDecls) error:l
+			{: parser.report_error("Error during const declaration, recovery to semicolon(;) ", lleft); :};
+			
+ConstValue 	::= 
+			(NumConst) NUMCONST 
+			| (CharConst) CHARCONST 
+			| (BoolConst) BOOLCONST;
+
+VarDecl 	::= 
+			(VarDeclaration) Type VarDecls SEMI
+			| (ErrLocVarDecl) error:l
+			{: parser.report_error("Error during local var or class fields declaration, recovery to left brace({) ", lleft); :};
+			
+VarDeclSingle::= 
+			(SingleVarDecl) IDENT VarArr;
+
+VarDecls	::= 
+			(ListVarDecls) VarDeclSingle COMMA VarDecls
+			| (SingleVarDecls) VarDeclSingle
+			| (ErrListVarDecls) error:l
+			{: parser.report_error("Error during var declaration, recovery to comma(,) ", lleft); :}
+			 COMMA VarDecls
+			| (ErrSingleVarDecls) error:l
+			{: parser.report_error("Error during var declaration, recovery to semicolon(;) ", lleft); :};
+
+VarArr		::= 
+			(ArrVar) LBRACKET RBRACKET
+			| (NotArrVar) /* epsilon */;
+
+ClassDecl	::= 
+			(ClassDecl) CLASS IDENT Extends LBRACE StaticThings LocalVarDecls ClassMethodDecls RBRACE;
+
+Extends		::= 
+			(ClassExtends) EXTENDS Type
+			| (ErrClassExtends) error:l
+			{: parser.report_error("Error during class extends declaration, recovery to left brace({) ", lleft); :}
+			| (NoClassExtends) /* epsilon */;
+
+ClassMethodDecls ::= 
+			(ClassMethDecls) LBRACE MethodDecls RBRACE
+			| (NoClassMethDecls) /* epsilon */;
+
+StaticThings::= 
+			(StaticVarThings) StaticVarDecl StaticThings
+            |   (StaticInitThings) StaticInitializer StaticInitializers
+			| 	(NoStaticThings) /* epsilon */;
+
+StaticVarDecl ::= 
+			(StaticVarDecl) STATIC VarDecl;
+
+StaticInitializers ::= 
+			(StaticInits) StaticInitializer StaticInitializers
+			| (NoStaticInits) /* epsilon */;
+
+StaticInitializer ::= 
+			(StaticInit) STATIC LBRACE Statements RBRACE;
+
+MethodDecls ::= 
+			(MethDeclsRetPars) MethodDecls Type IDENT LPAREN FormPars RPAREN LocalVarDecls LBRACE Statements RBRACE
+			| (ErrMethDeclsRetPars) MethodDecls Type IDENT LPAREN error RPAREN:l 
+			{: parser.report_error("Error during formal parameters declaration, recovery to right parenthesis(')') ", lleft); :}
+			LocalVarDecls LBRACE Statements RBRACE
+			| (MethDeclsVoidPars) MethodDecls VOID IDENT LPAREN FormPars RPAREN LocalVarDecls LBRACE Statements RBRACE
+			| (ErrMethDeclsVoidPars) MethodDecls VOID IDENT LPAREN error RPAREN:l 
+			{: parser.report_error("Error during formal parameters declaration, recovery to right parenthesis(')') ", lleft); :}
+			LocalVarDecls LBRACE Statements RBRACE
+			| (MethDeclsRetNoPars) MethodDecls Type IDENT LPAREN RPAREN LocalVarDecls LBRACE Statements RBRACE
+			| (MethDeclsVoidNoPars) MethodDecls VOID IDENT LPAREN RPAREN LocalVarDecls LBRACE Statements RBRACE
+			| (NoMethDecls) /* epsilon */;
+			
+LocalVarDecls ::= 
+			(LocVarDecls) LocalVarDecls VarDecl  
+			| (NoLocVarDecls) /* epsilon */;
+
+FormPars 	::= 
+			(SingleFormPars) Type IDENT VarArr
+			| (ListFormPars) FormPars COMMA Type IDENT VarArr
+			| (ErrFormPars) error COMMA:l
+			{: parser.report_error("Error during formal parameters declaration, recovery to comma(,) ", lleft); :};
+
+Type 		::= 
+			(TypeSimple) IDENT
+			| (TypeSpecific) IDENT DOUBLE_COLON IDENT;
+
+Statements 	::= 
+			(Stmnts) Statements Statement
+			| (NoStmnts) /* epsilon */;  
+			
+Statement 	::= 
+			(StmntDesign) DesignStatement SEMI
+			| (StmntIfElse) IF LPAREN Condition RPAREN Statement ElseStatement
+			| (ErrStmntIf) IF LPAREN error RPAREN:l
+			{: parser.report_error("Error during if logic conditions declaration, recovery to right parenthesis(')') ", lleft); :}
+			Statement ElseStatement
+			| (StmntBreak) BREAK SEMI
+			| (StmntContinue) CONTINUE SEMI
+			| (StmntRetExpr) RETURN Expr SEMI
+			| (StmntRetVoid) RETURN SEMI
+			| (StmntRead) READ LPAREN Design RPAREN SEMI
+			| (StmntPrintNum) PRINT LPAREN Expr COMMA NUMCONST RPAREN SEMI
+			| (StmntPrint) PRINT LPAREN Expr RPAREN SEMI
+			| (StmntFor123) FOR LPAREN DesignStatements SEMI CondFact SEMI DesignStatements RPAREN Statement
+			| (StmntFor12) FOR LPAREN DesignStatements SEMI CondFact SEMI RPAREN Statement
+			| (StmntFor13) FOR LPAREN DesignStatements SEMI SEMI DesignStatements RPAREN Statement
+			| (StmntFor1) FOR LPAREN DesignStatements SEMI SEMI RPAREN Statement
+			| (StmntFor23) FOR LPAREN SEMI CondFact SEMI DesignStatements RPAREN Statement
+			| (StmntFor2) FOR LPAREN SEMI CondFact SEMI RPAREN Statement
+			| (StmntFor3) FOR LPAREN SEMI SEMI DesignStatements RPAREN Statement
+			| (StmntFor) FOR LPAREN SEMI SEMI RPAREN Statement
+			| (StmntBlock) LBRACE Statements RBRACE;
+			
+ElseStatement ::= 
+			(StmntElse) ELSE Statement
+			| (StmntNoElse) /* epsilon */;
+			
+DesignStatements ::= 
+			(SingleDesignStmnts) DesignStatement
+			| (ListDesignStmnts) DesignStatements COMMA DesignStatement;
+
+DesignStatement ::= 
+			(DesignAssignment) Design ASSIGN Expr
+			| (DesignMethDeclPars) Design LPAREN ActPars RPAREN
+			| (DesignMethDeclNoPars) Design LPAREN RPAREN
+			| (DesignInc) Design INC
+			| (DesignDec) Design DEC
+			| (DesignMultiAssignment) LBRACKET Designs MUL Design RBRACKET ASSIGN Design
+			| (ErrDesign) error SEMI:l
+			{: parser.report_error("Error during assignment construction, recovery to semicolon(;) ", lleft); :};
+
+Designs 	::= 
+			(DesignsListNoDesign) Designs COMMA
+			| (DesignsListDesign) Designs COMMA Design
+			| (NoDesignsList) /* epsilon */;
+			
+ActPars 	::= 
+			(SingleActPars) Expr
+			| (ListActPars) ActPars COMMA Expr;
+
+Condition 	::= 
+			(NoCondOr) CondTerm
+			| (CondOr) Condition OR CondTerm;
+			
+CondTerm 	::= 
+			(NoCondAnd) CondFact
+			| (CondAnd) CondTerm AND CondFact;
+			
+CondFact 	::= 
+			(CondRelops) Expr Relops Expr
+			| (NoCondRelops) Expr;
+
+Expr 		::= 
+			(NoAddopsExprNeg) MINUS Term
+			| (NoAddopsExpr) Term
+			| (AddopsExpr) Expr Addops Term;
+			
+Term 		::= 
+			(NoMulopsTerm) Factor
+			| (MulopsTerm) Term Mulops Factor;
+			
+Factor 		::= 
+			(FactorDesignPars) Design LPAREN ActPars RPAREN
+			| (FactorDesignNoPars) Design LPAREN RPAREN
+			| (FactorDesign) Design
+			| (FactorConst) ConstValue
+			| (FactorNewArr) NEW Type LBRACKET Expr RBRACKET
+			| (FactorNewPars) NEW Type LPAREN ActPars RPAREN
+			| (FactorNewNoPars) NEW Type LPAREN RPAREN
+			| (FactorInParens) LPAREN Expr RPAREN;
+
+Design 		::= (DesignSpecific) IDENT DOUBLE_COLON IDENT DesignPart
+			| (DesignSimple) IDENT DesignPart;
+
+DesignPart 	::= (ListDesignField) DesignPart DOT IDENT
+			| (ListDesignIndex) DesignPart LBRACKET Expr RBRACKET
+			| (NoListDesign);
+			
+Relops 		::= (EqualOp) EQUAL
+			| (NotEqualOp) NOT_EQUAL
+			| (GreaterOp) GREATER_THAN
+			| (GreaterEqualOp) GREATER_EQUAL
+			| (LessOp) LESS_THAN
+			| (LessEqualOp) LESS_EQUAL;
+			
+Addops 		::= (AddOp) PLUS
+			| (SubOp) MINUS;
+			
+Mulops 		::= (MulOp) MUL
+			| (DivOp) DIV
+			| (ModOp) MOD;
