@@ -3,19 +3,28 @@ package rs.ac.bg.etf.pp1;
 import org.apache.log4j.Logger;
 
 import rs.ac.bg.etf.pp1.ast.*;
+import rs.etf.pp1.mj.runtime.Code;
 import rs.etf.pp1.symboltable.*;
 import rs.etf.pp1.symboltable.concepts.*;
 
 public class SemanticAnalyzer extends VisitorAdaptor {
 
-	int printCallCount = 0;
-	int varDeclCount = 0;
-	Obj currentMethod = null;
-	boolean returnFound = false;
-	boolean errorDetected = false;
-	int nVars;
+//	int printCallCount = 0;
+//	int varDeclCount = 0;
+//	Obj currentMethod = null;
+//	boolean returnFound = false;
+	public boolean errorDetected = false;
+	private boolean mainFound = false;
+	private static final String[] objKindNames = { "Con", "Var", "Type", "Meth", "Fld", "Elem", "Prog" };
+	private static final String[] structKindNames = { "None", "Int", "Char", "Array", "Class", "Bool" };
+
+	public static Struct boolType = new Struct(Struct.Bool);
 	
 	Logger log = Logger.getLogger(getClass());
+	
+	{
+		Tab.currentScope.addToLocals(new Obj(Obj.Type, "bool", boolType));
+	}
 
 	public void report_error(String message, SyntaxNode info) {
 		errorDetected = true;
@@ -26,11 +35,15 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		log.error(msg.toString());
 	}
 
-	public void report_info(String message, SyntaxNode info) {
+	public void report_info(String message, Obj symbol, SyntaxNode info) {
 		StringBuilder msg = new StringBuilder(message); 
 		int line = (info == null) ? 0: info.getLine();
 		if (line != 0)
-			msg.append (" (line ").append(line);
+			msg.append (" (line ").append(line).append(")");
+		String formattedSymbolInfo = String.format("[%s, %s, %s, %d, %d]",
+		        symbol.getName(), objKindNames[symbol.getKind()],
+		        structKindNames[symbol.getType().getKind()], symbol.getAdr(), symbol.getLevel());
+		msg.append(formattedSymbolInfo);
 		log.info(msg.toString());
 	}
 
@@ -46,16 +59,57 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 //		printCallCount++;
 //	}
 //    
+	@Override
     public void visit(ProgName progName){
     	progName.obj = Tab.insert(Obj.Prog, progName.getProgName(), Tab.noType);
-//    	Tab.openScope();
+    	if (progName.obj.getKind() != Obj.Prog) {
+			report_error("Program cannot have the same name as a keyword", progName);
+		}
+		report_info("Defined program type", progName.obj, progName);
+    	Tab.openScope();
     }
-//    
-//    public void visit(Program program){
-//    	nVars = Tab.currentScope.getnVars();
-//    	Tab.chainLocalSymbols(program.getProgName().obj);
-//    	Tab.closeScope();
-//    }
+    
+	@Override
+    public void visit(Program program){
+		program.obj = program.getProgName().obj;
+    	Code.dataSize = Tab.currentScope.getnVars();
+    	Tab.chainLocalSymbols(program.obj);
+    	Tab.closeScope();
+    	if (!mainFound) {
+			report_error("Main method not found in the program.", null);
+		}
+    }
+	
+	@Override
+	public void visit(TypeSimple type){
+    	Obj typeNode = Tab.find(type.getTypeName());
+    	if(typeNode == Tab.noObj){
+    		report_error("No type " + type.getTypeName() + " declared in the symbol table!", type);
+    		type.struct = Tab.noType;
+    	}else{
+    		if(Obj.Type == typeNode.getKind()){
+    			type.struct = typeNode.getType();
+    		}else{
+    			report_error("Name " + type.getTypeName() + " is not of type kind!", type);
+    			type.struct = Tab.noType;
+    		}
+    	}
+    }
+	
+	@Override
+	public void visit(NumConst numConst) {
+		numConst.obj = new Obj(Obj.Con, "$const", Tab.intType, numConst.getNumConst(), 0);
+	}
+
+	@Override
+	public void visit(CharConst charConst) {
+		charConst.obj = new Obj(Obj.Con, "$const", Tab.charType, (int) charConst.getCharConst(), 0);
+	}
+
+	@Override
+	public void visit(BoolConst boolConst) {
+		boolConst.obj = new Obj(Obj.Con, "$const", boolType, boolConst.getBoolConst() ? 1 : 0, 0);
+	}
 //    
 //    public void visit(Type type){
 //    	Obj typeNode = Tab.find(type.getTypeName());

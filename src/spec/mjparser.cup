@@ -45,19 +45,22 @@ scan with {:
 
 
 terminal PROGRAM, BREAK, CLASS, ELSE, CONST, IF, NEW, PRINT, READ, RETURN;
-terminal VOID, EXTENDS, CONTINUE, FOR, STATIC, NAMESPACE, CHARCONST, BOOLCONST;
+terminal VOID, EXTENDS, CONTINUE, FOR, STATIC, NAMESPACE;
 terminal PLUS, MINUS, MUL, DIV, MOD, EQUAL, NOT_EQUAL, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL;
 terminal AND, OR, ASSIGN, INC, DEC, SEMI, DOUBLE_COLON, COMMA, DOT, LPAREN, RPAREN, LBRACKET, RBRACKET, LBRACE, RBRACE;
 
-terminal String IDENT;
 terminal Integer NUMCONST;
+terminal Boolean BOOLCONST;
+terminal char CHARCONST;
+terminal String IDENT;
 
-nonterminal Namespace, GlobalDecls, GlobalDecl, ConstDecl, ConstDecls, ConstDeclSingle, ConstValue, VarDecl, VarDecls, VarDeclSingle, LocalVarDecls, VarArr;
-nonterminal MethodDecls, FormPars, Type, Statements, Statement, DesignStatements, DesignStatement, Designs, Design, DesignPart;
-nonterminal ActPars, Condition, CondTerm, CondFact, Expr, ExprPart, Term, Factor, Relops, Addops, Mulops, ElseStatement;
+nonterminal Namespace, GlobalDecls, GlobalDecl, ConstDecl, ConstDecls, ConstDeclSingle, VarDecl, VarDecls, VarDeclSingle, LocalVarDecls, VarArr;
+nonterminal MethodDecls, FormPars, Statements, Statement, DesignStatements, DesignStatement, Designs, Design, DesignPart;
+nonterminal ActPars, Condition, CondTerm, CondFact, Expr, Term, Factor, Relops, Addops, Mulops, ElseStatement;
 nonterminal ClassDecl, Extends, ClassMethodDecls, StaticVarDecl, StaticInitializer, StaticInitializers, StaticThings;
 
-nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program;
+nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program, ConstValue;
+nonterminal rs.etf.pp1.symboltable.concepts.Struct Type;
 
 precedence left ELSE;
 
@@ -96,9 +99,9 @@ ConstDecls 	::=
 			{: parser.report_error("Error during const declaration, recovery to semicolon(;) ", lleft); :};
 			
 ConstValue 	::= 
-			(NumConst) NUMCONST 
-			| (CharConst) CHARCONST 
-			| (BoolConst) BOOLCONST;
+			(NumConst) NUMCONST : numConst
+			| (CharConst) CHARCONST : charConst
+			| (BoolConst) BOOLCONST : boolConst;
 
 VarDecl 	::= 
 			(VarDeclaration) Type VarDecls SEMI
@@ -173,7 +176,7 @@ FormPars 	::=
 			{: parser.report_error("Error during formal parameters declaration, recovery to comma(,) ", lleft); :};
 
 Type 		::= 
-			(TypeSimple) IDENT
+			(TypeSimple) IDENT:typeName
 			| (TypeSpecific) IDENT DOUBLE_COLON IDENT;
 
 Statements 	::= 
