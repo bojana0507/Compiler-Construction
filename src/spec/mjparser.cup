@@ -51,28 +51,31 @@ terminal AND, OR, ASSIGN, INC, DEC, SEMI, DOUBLE_COLON, COMMA, DOT, LPAREN, RPAR
 
 terminal Integer NUMCONST;
 terminal Boolean BOOLCONST;
-terminal char CHARCONST;
+terminal Character CHARCONST;
 terminal String IDENT;
 
-nonterminal Namespace, GlobalDecls, GlobalDecl, ConstDecl, ConstDecls, ConstDeclSingle, VarDecl, VarDecls, VarDeclSingle, LocalVarDecls, VarArr;
-nonterminal MethodDecls, FormPars, Statements, Statement, DesignStatements, DesignStatement, Designs, Design, DesignPart;
+nonterminal Namespaces, GlobalDecls, GlobalDecl, ConstDecl, ConstDecls, ConstDeclSingle, VarDecl, VarDecls, VarDeclSingle, LocalVarDecls;
+nonterminal MethodDecls, ReturnType, FormPars, Statements, Statement, DesignStatements, DesignStatement, Designs, Design, DesignPart;
 nonterminal ActPars, Condition, CondTerm, CondFact, Expr, Term, Factor, Relops, Addops, Mulops, ElseStatement;
 nonterminal ClassDecl, Extends, ClassMethodDecls, StaticVarDecl, StaticInitializer, StaticInitializers, StaticThings;
 
-nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program, ConstValue;
-nonterminal rs.etf.pp1.symboltable.concepts.Struct Type;
+nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program, ConstValue, NamespaceName, MethName, MethodDecl;
+nonterminal rs.etf.pp1.symboltable.concepts.Struct Type, VarArr;
 
 precedence left ELSE;
 
 Program 	::= 
-			(Program) ProgName Namespace GlobalDecls LBRACE MethodDecls RBRACE;
+			(Program) ProgName Namespaces GlobalDecls LBRACE MethodDecls RBRACE;
 
 ProgName 	::= 
 			(ProgName) PROGRAM IDENT:progName;
 
-Namespace 	::= 
-			(ANamespace) Namespace NAMESPACE IDENT LBRACE GlobalDecls LBRACE MethodDecls RBRACE RBRACE
+Namespaces 	::= 
+			(ANamespace) Namespaces NamespaceName LBRACE GlobalDecls LBRACE MethodDecls RBRACE RBRACE
 			| (NoNamespace) /* epsilon */;
+			
+NamespaceName ::= 
+			(NamespaceName) NAMESPACE IDENT:namespaceName;
 			
 GlobalDecls ::= 
 			(GlobDecls) GlobalDecls GlobalDecl
@@ -109,7 +112,7 @@ VarDecl 	::=
 			{: parser.report_error("Error during local var or class fields declaration, recovery to left brace({) ", lleft); :};
 			
 VarDeclSingle::= 
-			(SingleVarDecl) IDENT VarArr;
+			(SingleVarDecl) IDENT:name VarArr;
 
 VarDecls	::= 
 			(ListVarDecls) VarDeclSingle COMMA VarDecls
@@ -153,17 +156,23 @@ StaticInitializer ::=
 			(StaticInit) STATIC LBRACE Statements RBRACE;
 
 MethodDecls ::= 
-			(MethDeclsRetPars) MethodDecls Type IDENT LPAREN FormPars RPAREN LocalVarDecls LBRACE Statements RBRACE
-			| (ErrMethDeclsRetPars) MethodDecls Type IDENT LPAREN error RPAREN:l 
-			{: parser.report_error("Error during formal parameters declaration, recovery to right parenthesis(')') ", lleft); :}
-			LocalVarDecls LBRACE Statements RBRACE
-			| (MethDeclsVoidPars) MethodDecls VOID IDENT LPAREN FormPars RPAREN LocalVarDecls LBRACE Statements RBRACE
-			| (ErrMethDeclsVoidPars) MethodDecls VOID IDENT LPAREN error RPAREN:l 
-			{: parser.report_error("Error during formal parameters declaration, recovery to right parenthesis(')') ", lleft); :}
-			LocalVarDecls LBRACE Statements RBRACE
-			| (MethDeclsRetNoPars) MethodDecls Type IDENT LPAREN RPAREN LocalVarDecls LBRACE Statements RBRACE
-			| (MethDeclsVoidNoPars) MethodDecls VOID IDENT LPAREN RPAREN LocalVarDecls LBRACE Statements RBRACE
+			(MethDecls) MethodDecls MethodDecl
 			| (NoMethDecls) /* epsilon */;
+			
+MethodDecl	::=
+			(MethDeclPars) ReturnType MethName LPAREN FormPars RPAREN LocalVarDecls LBRACE Statements RBRACE
+			| (ErrMethDeclPars) ReturnType MethName LPAREN error RPAREN:l 
+			{: parser.report_error("Error during formal parameters declaration, recovery to right parenthesis(')') ", lleft); :}
+			LocalVarDecls LBRACE Statements RBRACE
+			| (MethDeclNoPars) ReturnType MethName LPAREN RPAREN LocalVarDecls LBRACE Statements RBRACE;
+
+			
+MethName	::=
+			(MethName) IDENT;
+			
+ReturnType 	::=
+			(ReturnTypeType) Type 
+			| (ReturnTypeVoid) VOID;
 			
 LocalVarDecls ::= 
 			(LocVarDecls) LocalVarDecls VarDecl  
@@ -177,7 +186,7 @@ FormPars 	::=
 
 Type 		::= 
 			(TypeSimple) IDENT:typeName
-			| (TypeSpecific) IDENT DOUBLE_COLON IDENT;
+			| (TypeSpecific) IDENT:namespaceName DOUBLE_COLON IDENT:typeName;
 
 Statements 	::= 
 			(Stmnts) Statements Statement

@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
 
 import java_cup.runtime.Symbol;
+import rs.ac.bg.etf.pp1.ast.Program;
 import rs.ac.bg.etf.pp1.ast.SyntaxNode;
 import rs.ac.bg.etf.pp1.util.Log4JUtils;
 import rs.etf.pp1.mj.runtime.Code;
@@ -42,8 +43,8 @@ public class Compiler {
 				log.error("SYNTAX ERROR DETECTED - process stopped.");
 				System.exit(2);
 			}
-	        SyntaxNode prog = (SyntaxNode)(symbol.value);
-	        log.debug(prog.toString());
+	        Program prog = (Program)(symbol.value);
+	        log.debug(prog.toString(""));
 			Tab.init(); // Universe scope
 			
 			SemanticAnalyzer semanticCheck = new SemanticAnalyzer();

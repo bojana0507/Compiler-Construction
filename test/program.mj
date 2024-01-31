@@ -1,5 +1,15 @@
 program p
 
+namespace ludi{
+const int pet = 5, c2 ='a', c3 = 8;
+int a, b, c;
+{}
+}
+
+int x, y;
+const int pet = 5;
+const char c = 'f';
+
 {
 	
 	int k () int c; {
@@ -7,7 +17,7 @@ program p
 		return c+2;
 	}
 	
-	int main() {
+	int k2() {
 		y = 2;
 		x = y + 2;
 		y = k() + 3;
@@ -21,8 +31,10 @@ program p
 		x = a;
 	}
 	
-	void main() int x, i; char c; int arr[];
+	void main() int x, i; bool b; int arr[];
 	{
-
+		b = true;
+		x = k2();
+		f('a', 5, arr);
 	}
 }
