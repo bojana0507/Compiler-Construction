@@ -1,7 +1,7 @@
 program p
 
 namespace ludi{
-const int pet = 5, c2 ='a', c3 = 8;
+const int pet = 5, c3 = 8;
 int a, b, c;
 {}
 }

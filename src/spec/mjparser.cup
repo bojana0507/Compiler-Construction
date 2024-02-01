@@ -55,8 +55,8 @@ terminal Character CHARCONST;
 terminal String IDENT;
 
 nonterminal Namespaces, GlobalDecls, GlobalDecl, ConstDecl, ConstDecls, ConstDeclSingle, VarDecl, VarDecls, VarDeclSingle, LocalVarDecls;
-nonterminal MethodDecls, ReturnType, FormPars, Statements, Statement, DesignStatements, DesignStatement, Designs, Design, DesignPart;
-nonterminal ActPars, Condition, CondTerm, CondFact, Expr, Term, Factor, Relops, Addops, Mulops, ElseStatement;
+nonterminal MethodDecls, ReturnType, FormPars, FormParsList, Statements, Statement, DesignStatements, DesignStatementsList, DesignStatement, Designs, Design, DesignPart;
+nonterminal ActPars, ActParsList, Condition, CondTerm, CondFact, Expr, Term, Factor, Relops, Addops, Mulops, ElseStatement;
 nonterminal ClassDecl, Extends, ClassMethodDecls, StaticVarDecl, StaticInitializer, StaticInitializers, StaticThings;
 
 nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program, ConstValue, NamespaceName, MethName, MethodDecl;
@@ -140,7 +140,7 @@ ClassMethodDecls ::=
 			(ClassMethDecls) LBRACE MethodDecls RBRACE
 			| (NoClassMethDecls) /* epsilon */;
 
-StaticThings::= 
+StaticThings ::= 
 			(StaticVarThings) StaticVarDecl StaticThings
             |   (StaticInitThings) StaticInitializer StaticInitializers
 			| 	(NoStaticThings) /* epsilon */;
@@ -160,15 +160,14 @@ MethodDecls ::=
 			| (NoMethDecls) /* epsilon */;
 			
 MethodDecl	::=
-			(MethDeclPars) ReturnType MethName LPAREN FormPars RPAREN LocalVarDecls LBRACE Statements RBRACE
+			(MethDecl) ReturnType MethName LPAREN FormPars RPAREN LocalVarDecls LBRACE Statements RBRACE
 			| (ErrMethDeclPars) ReturnType MethName LPAREN error RPAREN:l 
 			{: parser.report_error("Error during formal parameters declaration, recovery to right parenthesis(')') ", lleft); :}
-			LocalVarDecls LBRACE Statements RBRACE
-			| (MethDeclNoPars) ReturnType MethName LPAREN RPAREN LocalVarDecls LBRACE Statements RBRACE;
+			LocalVarDecls LBRACE Statements RBRACE;
 
 			
 MethName	::=
-			(MethName) IDENT;
+			(MethName) IDENT:methName;
 			
 ReturnType 	::=
 			(ReturnTypeType) Type 
@@ -178,10 +177,14 @@ LocalVarDecls ::=
 			(LocVarDecls) LocalVarDecls VarDecl  
 			| (NoLocVarDecls) /* epsilon */;
 
-FormPars 	::= 
-			(SingleFormPars) Type IDENT VarArr
-			| (ListFormPars) FormPars COMMA Type IDENT VarArr
-			| (ErrFormPars) error COMMA:l
+FormPars	::=
+			(FormParams) FormParsList
+			| (NoFormParams) /* epsilon */;
+
+FormParsList ::= 
+			(FirstFormParams) Type IDENT:name VarArr
+			| (ListFormParams) FormParsList COMMA Type IDENT:name VarArr
+			| (ErrFormParams) error COMMA:l
 			{: parser.report_error("Error during formal parameters declaration, recovery to comma(,) ", lleft); :};
 
 Type 		::= 
@@ -205,28 +208,25 @@ Statement 	::=
 			| (StmntRead) READ LPAREN Design RPAREN SEMI
 			| (StmntPrintNum) PRINT LPAREN Expr COMMA NUMCONST RPAREN SEMI
 			| (StmntPrint) PRINT LPAREN Expr RPAREN SEMI
-			| (StmntFor123) FOR LPAREN DesignStatements SEMI CondFact SEMI DesignStatements RPAREN Statement
-			| (StmntFor12) FOR LPAREN DesignStatements SEMI CondFact SEMI RPAREN Statement
-			| (StmntFor13) FOR LPAREN DesignStatements SEMI SEMI DesignStatements RPAREN Statement
-			| (StmntFor1) FOR LPAREN DesignStatements SEMI SEMI RPAREN Statement
-			| (StmntFor23) FOR LPAREN SEMI CondFact SEMI DesignStatements RPAREN Statement
-			| (StmntFor2) FOR LPAREN SEMI CondFact SEMI RPAREN Statement
-			| (StmntFor3) FOR LPAREN SEMI SEMI DesignStatements RPAREN Statement
-			| (StmntFor) FOR LPAREN SEMI SEMI RPAREN Statement
+			| (StmntForCond) FOR LPAREN DesignStatements SEMI CondFact SEMI DesignStatements RPAREN Statement
+			| (StmntForNoCond) FOR LPAREN DesignStatements SEMI SEMI DesignStatements RPAREN Statement
 			| (StmntBlock) LBRACE Statements RBRACE;
 			
 ElseStatement ::= 
 			(StmntElse) ELSE Statement
 			| (StmntNoElse) /* epsilon */;
 			
-DesignStatements ::= 
+DesignStatements ::=
+			(DesignStmnts) DesignStatementsList
+			| (NoDesignStmnts) /* epsilon */;
+			
+DesignStatementsList ::= 
 			(SingleDesignStmnts) DesignStatement
-			| (ListDesignStmnts) DesignStatements COMMA DesignStatement;
+			| (ListDesignStmnts) DesignStatementsList COMMA DesignStatement;
 
 DesignStatement ::= 
 			(DesignAssignment) Design ASSIGN Expr
 			| (DesignMethDeclPars) Design LPAREN ActPars RPAREN
-			| (DesignMethDeclNoPars) Design LPAREN RPAREN
 			| (DesignInc) Design INC
 			| (DesignDec) Design DEC
 			| (DesignMultiAssignment) LBRACKET Designs MUL Design RBRACKET ASSIGN Design
@@ -235,12 +235,17 @@ DesignStatement ::=
 
 Designs 	::= 
 			(DesignsListNoDesign) Designs COMMA
+			| (DesignsListFirstDesign) Design
 			| (DesignsListDesign) Designs COMMA Design
 			| (NoDesignsList) /* epsilon */;
+	
+ActPars		::=
+			(ActParams) ActParsList
+			| (NoActParams) /* epsilon */;
 			
-ActPars 	::= 
-			(SingleActPars) Expr
-			| (ListActPars) ActPars COMMA Expr;
+ActParsList	::= 
+			(FirstActPars) Expr
+			| (ListActPars) ActParsList COMMA Expr;
 
 Condition 	::= 
 			(NoCondOr) CondTerm
@@ -265,12 +270,10 @@ Term 		::=
 			
 Factor 		::= 
 			(FactorDesignPars) Design LPAREN ActPars RPAREN
-			| (FactorDesignNoPars) Design LPAREN RPAREN
 			| (FactorDesign) Design
 			| (FactorConst) ConstValue
 			| (FactorNewArr) NEW Type LBRACKET Expr RBRACKET
 			| (FactorNewPars) NEW Type LPAREN ActPars RPAREN
-			| (FactorNewNoPars) NEW Type LPAREN RPAREN
 			| (FactorInParens) LPAREN Expr RPAREN;
 
 Design 		::= (DesignSpecific) IDENT DOUBLE_COLON IDENT DesignPart
