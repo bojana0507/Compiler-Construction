@@ -55,12 +55,12 @@ terminal Character CHARCONST;
 terminal String IDENT;
 
 nonterminal Namespaces, GlobalDecls, GlobalDecl, ConstDecl, ConstDecls, ConstDeclSingle, VarDecl, VarDecls, VarDeclSingle, LocalVarDecls;
-nonterminal MethodDecls, ReturnType, FormPars, FormParsList, Statements, Statement, DesignStatements, DesignStatementsList, DesignStatement, Designs, Design, DesignPart;
-nonterminal ActPars, ActParsList, Condition, CondTerm, CondFact, Expr, Term, Factor, Relops, Addops, Mulops, ElseStatement;
+nonterminal MethodDecls, ReturnType, FormPars, FormParsList, Statements, Statement, PrintExtraArgs, DesignStatements, DesignStatementsList, DesignStatement, Designs;
+nonterminal ActPars, ActParsList, Relops, Addops, Mulops, ElseStatement;
 nonterminal ClassDecl, Extends, ClassMethodDecls, StaticVarDecl, StaticInitializer, StaticInitializers, StaticThings;
 
-nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program, ConstValue, NamespaceName, MethName, MethodDecl;
-nonterminal rs.etf.pp1.symboltable.concepts.Struct Type, VarArr;
+nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program, ConstValue, NamespaceName, MethName, MethodDecl, Design;
+nonterminal rs.etf.pp1.symboltable.concepts.Struct Type, VarArr, Expr, Term, Factor, Condition, CondTerm, CondFact;
 
 precedence left ELSE;
 
@@ -206,12 +206,15 @@ Statement 	::=
 			| (StmntRetExpr) RETURN Expr SEMI
 			| (StmntRetVoid) RETURN SEMI
 			| (StmntRead) READ LPAREN Design RPAREN SEMI
-			| (StmntPrintNum) PRINT LPAREN Expr COMMA NUMCONST RPAREN SEMI
-			| (StmntPrint) PRINT LPAREN Expr RPAREN SEMI
+			| (StmntPrint) PRINT LPAREN Expr PrintExtraArgs RPAREN SEMI
 			| (StmntForCond) FOR LPAREN DesignStatements SEMI CondFact SEMI DesignStatements RPAREN Statement
 			| (StmntForNoCond) FOR LPAREN DesignStatements SEMI SEMI DesignStatements RPAREN Statement
 			| (StmntBlock) LBRACE Statements RBRACE;
 			
+PrintExtraArgs ::=
+			(PrintExtraArg) COMMA NUMCONST
+			| (NoPrintExtraArgs) /* epsilon */;
+
 ElseStatement ::= 
 			(StmntElse) ELSE Statement
 			| (StmntNoElse) /* epsilon */;
@@ -226,7 +229,7 @@ DesignStatementsList ::=
 
 DesignStatement ::= 
 			(DesignAssignment) Design ASSIGN Expr
-			| (DesignMethDeclPars) Design LPAREN ActPars RPAREN
+			| (DesignMethCall) Design LPAREN ActPars RPAREN
 			| (DesignInc) Design INC
 			| (DesignDec) Design DEC
 			| (DesignMultiAssignment) LBRACKET Designs MUL Design RBRACKET ASSIGN Design
@@ -269,19 +272,18 @@ Term 		::=
 			| (MulopsTerm) Term Mulops Factor;
 			
 Factor 		::= 
-			(FactorDesignPars) Design LPAREN ActPars RPAREN
+			(FactorDesignFCall) Design LPAREN ActPars RPAREN
 			| (FactorDesign) Design
 			| (FactorConst) ConstValue
-			| (FactorNewArr) NEW Type LBRACKET Expr RBRACKET
-			| (FactorNewPars) NEW Type LPAREN ActPars RPAREN
-			| (FactorInParens) LPAREN Expr RPAREN;
+			| (FactorNewArrRef) NEW Type LBRACKET Expr RBRACKET
+			| (FactorNewObjRef) NEW Type LPAREN ActPars RPAREN
+			| (FactorExpr) LPAREN Expr RPAREN;
 
-Design 		::= (DesignSpecific) IDENT DOUBLE_COLON IDENT DesignPart
-			| (DesignSimple) IDENT DesignPart;
+Design 		::= (DesignIdentNamespace) IDENT:namespaceName DOUBLE_COLON IDENT:varName
+	 		| (DesignIdent) IDENT:varName
+			| (DesignArrayAccess) Design LBRACKET Expr RBRACKET
+			| (DesignFieldAccess) Design DOT IDENT;
 
-DesignPart 	::= (ListDesignField) DesignPart DOT IDENT
-			| (ListDesignIndex) DesignPart LBRACKET Expr RBRACKET
-			| (NoListDesign);
 			
 Relops 		::= (EqualOp) EQUAL
 			| (NotEqualOp) NOT_EQUAL

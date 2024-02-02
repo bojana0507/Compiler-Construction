@@ -20,6 +20,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	private Obj currClass = null;
 	private Obj currMethod = null;
 	private String currNamespace = "";
+	private boolean returnFound = true;
 	private List<Struct> currParameters = new ArrayList<>();
 	
 	public static Struct boolType = new Struct(Struct.Bool);
@@ -52,7 +53,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	}
 	
 	
-	// HELPER FUNCTIONS
+	//=================================================================================
+	// Helper functions
 	private void addParam(SyntaxNode paramNode, String paramName, Struct type) {
 		if (currMethod == null) {
 			// Error happened earlier.
@@ -63,7 +65,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			report_error("Multiple parameters named " + paramName + "!", null);
 			return;
 		}
-		Obj paramObj = Tab.insert(Obj.Var, paramName, type);
+		Obj paramObj = Tab.insert(Obj.Var, currNamespace + paramName, type);
 		report_info("Defined parameter in method " + currMethod.getName(), paramObj, paramNode);
 		currMethod.setLevel(currMethod.getLevel() + 1);
 		paramObj.setFpPos(currMethod.getLevel());
@@ -86,8 +88,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		}
 		return true;
 	}
-	
-	
+	//=================================================================================
+	// ProgName ::=
 	@Override
     public void visit(ProgName progName){
     	progName.obj = Tab.insert(Obj.Prog, progName.getProgName(), Tab.noType);
@@ -98,7 +100,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		report_info("Defined program type", progName.obj, progName);
     	Tab.openScope();
     }
-    
+	//=================================================================================
+	// Program ::=
 	@Override
     public void visit(Program program){
 		program.obj = program.getProgName().obj;
@@ -109,14 +112,15 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			report_error("Main method not found in the program!", null);
 		}
     }
-	
+	//=================================================================================
+	// NamespaceName ::=
 	@Override
     public void visit(NamespaceName namespaceName){
 		if (Tab.find(namespaceName.getNamespaceName()) != Tab.noObj) {
 			report_error("Namespace " + namespaceName.getNamespaceName() + " already defined!", namespaceName);
 			return;
     	}
-		namespaceName.obj = Tab.insert(Obj.Prog, namespaceName.getNamespaceName(), Tab.noType);
+		namespaceName.obj = Tab.insert(Obj.Prog, namespaceName.getNamespaceName(), Tab.nullType);
     	if (namespaceName.obj.getKind() != Obj.Prog) {
 			report_error("Namespace cannot have the same name as a keyword!", namespaceName);
 			namespaceName.obj = null;
@@ -125,7 +129,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		report_info("Defined namespace type", namespaceName.obj, namespaceName);
 		currNamespace = namespaceName.getNamespaceName() + "::";
     }
-	
+	//=================================================================================
+	// Namespaces ::=
 	@Override
     public void visit(ANamespace namespace){
 		currNamespace = "";
@@ -134,7 +139,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			return;
 		}
     }
-	
+	//=================================================================================
+	// Type ::=
 	@Override
 	public void visit(TypeSimple type){
     	Obj typeObj = Tab.find(type.getTypeName());
@@ -179,7 +185,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	currType = typeObj;
 		type.struct = typeObj.getType();
 	}
-	
+	//=================================================================================
+	// ConstDeclSingle ::=
 	@Override
 	public void visit(SingleConstDecl constDecl) {
 		if (currType == null) {
@@ -198,7 +205,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		constObj.setAdr(constDecl.getConstValue().obj.getAdr());
 		report_info("Constant declaration", constObj, constDecl);
 	}
-	
+	//=================================================================================
+	// VarArr ::=
 	@Override
 	public void visit(ArrVar arrVar) {
 		if (currType == null) {
@@ -216,7 +224,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		}
 		notArrVar.struct = currType.getType();
 	}
-	
+	//=================================================================================
+	// VarDeclSingle ::=
 	@Override
 	public void visit(SingleVarDecl varDecl) {
 		Struct varType = varDecl.getVarArr().struct; // the info if it is an array and it's type set
@@ -226,7 +235,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 				report_error("Variable " + currNamespace + varDecl.getName() + " already defined!", varDecl);
 				return;
 			} else if (varTypeObj.getLevel() != 0) {
-				report_error("Local variable " + varDecl.getName() + " already defined!", varDecl);
+				report_error("Local variable " + currNamespace + varDecl.getName() + " already defined!", varDecl);
 				return;
 			}
 		}
@@ -238,7 +247,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		Obj varObj = Tab.insert(objKind, currNamespace + varDecl.getName(), varType);
 		report_info("Variable declaration", varObj, varDecl);
 	}
-	
+	//=================================================================================
+	// ConstValue ::=
 	@Override
 	public void visit(NumConst numConst) {
 		numConst.obj = new Obj(Obj.Con, "const", Tab.intType, numConst.getNumConst(), 0);
@@ -253,12 +263,14 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	public void visit(BoolConst boolConst) {
 		boolConst.obj = new Obj(Obj.Con, "const", boolType, boolConst.getBoolConst() ? 1 : 0, 0);
 	}
-	
+	//=================================================================================
+	// ReturnType ::=
 	@Override
 	public void visit(ReturnTypeVoid returnTypeVoid) {
 		currType = null;
 	}
-	
+	//=================================================================================
+	// MethName ::=
 	@Override
 	public void visit(MethName methName) {
 		Obj methNameObj = Tab.find(currNamespace + methName.getMethName());
@@ -268,13 +280,16 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		}
 		currMethod = Tab.insert(Obj.Meth, currNamespace + methName.getMethName(),
 				(currType == null) ? Tab.noType : currType.getType());
+		if (currType != null)
+			returnFound = false;
 		currMethod.setLevel(0);
 		report_info("Method declaration", currMethod, methName);
 		currType = null;
 		Tab.openScope();
 		if (currClass != null) {
-//			addParam("this", currClass.getType());
-		} else if (methName.getMethName().equals("main")) {
+			addParam(methName, "this", currClass.getType());
+		} 
+		else if (methName.getMethName().equals("main")) {
 			if (currMethod.getType() != Tab.noType) {
 				report_error("The main() method must be declared void!", methName);
 			} else {
@@ -283,19 +298,24 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		}
 		methName.obj = currMethod;
 	}
-
+	//=================================================================================
+	// MethodDecl ::=
 	@Override
 	public void visit(MethDecl methDecl) {
 		if (currMethod == null) {
 			// Error happened earlier.
 			return;
 		}
+		if (!returnFound) {
+			report_error("No return found in non void method!", methDecl);
+		}
 		Tab.chainLocalSymbols(currMethod);
 		Tab.closeScope();
 		methDecl.obj = currMethod;
 		currMethod = null;
 	}
-	
+	//=================================================================================
+	// FormParsList ::=
 	@Override
 	public void visit(FirstFormParams firstFormParams) {
 		addParam(firstFormParams, firstFormParams.getName(), firstFormParams.getVarArr().struct);
@@ -307,14 +327,47 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		addParam(listFormParams, listFormParams.getName(), listFormParams.getVarArr().struct);
 		currType = null;
 	}
-	
+	//=================================================================================
+	// FormPars ::=
 	@Override
 	public void visit(NoFormParams noFormParams) {
 		currType = null;
 	}
+	//=================================================================================
+	// Statement (lvl A) ::=
+	@Override
+	public void visit(StmntRead stmntRead) {
+		Obj designObj = stmntRead.getDesign().obj;
+		if (designObj == null) {
+			// Error happened earlier.
+			return;
+		}
+		if (designObj.getKind() != Obj.Var && designObj.getKind() != Obj.Elem && designObj.getKind() != Obj.Fld) {
+			report_error("Designator " + designObj.getName() + " can't be read!", stmntRead);
+			return;
+		}
+		if (!designObj.getType().equals(Tab.intType) && !designObj.getType().equals(Tab.charType) && !designObj.getType().equals(boolType)) {
+			report_error("Can't read, designator type can only be integer, character or boolean!", stmntRead);
+		}
+	}
+	
+	@Override
+	public void visit(StmntPrint stmntPrint) {
+		Struct exprStruct = stmntPrint.getExpr().struct;
+		if (exprStruct == null) {
+			report_error("No expression to print!", stmntPrint);
+			return;
+		}
+		if (!exprStruct.equals(Tab.intType) && !exprStruct.equals(Tab.charType) && !exprStruct.equals(boolType)) {
+			report_error("Can't print, type can only be integer, character or boolean!", stmntPrint);
+		}
+	}
 	
 	@Override
 	public void visit(StmntRetVoid stmntRetVoid) {
+		if (currMethod == null) {
+			report_error("No return allowed outside method body!", stmntRetVoid);
+		}
 		if (currMethod.getType() != Tab.noType) {
 			report_error("The method " + currMethod.getName() + " isn't declared to return void!", stmntRetVoid);
 			currMethod = null;
@@ -323,10 +376,257 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	
 	@Override
 	public void visit(StmntRetExpr stmntRetExpr) {
-		if (currMethod.getType() == Tab.noType) {
-			report_error("The method " + currMethod.getName() + " is declared to return void!", stmntRetExpr);
-			currMethod = null;
+		if (currMethod == null) {
+			report_error("No return allowed outside method body!", stmntRetExpr);
 		}
+		Struct exprStruct = stmntRetExpr.getExpr().struct;
+		if (!currMethod.getType().equals(exprStruct)) {
+			report_error("The method " + currMethod.getName() + " isn't declared to return this type!", stmntRetExpr);
+			currMethod = null;
+			return;
+		}
+		returnFound = true;
+	}
+	//=================================================================================
+	// Design (lvl B) ::=
+	@Override
+	public void visit(DesignIdentNamespace designIdentNamespace) {
+		String designNamespace = designIdentNamespace.getNamespaceName();
+		Obj designNamespaceObj = Tab.find(designNamespace);
+		if (designNamespaceObj == Tab.noObj || designNamespaceObj.getKind() != Obj.Prog || designNamespaceObj.getType() != Tab.nullType) {
+			report_error("Namespace " + designNamespace + " doesn't exist!", designIdentNamespace);
+			designIdentNamespace.obj = null;
+			return;
+		}
+		String designIdentFull = designNamespace + "::" + designIdentNamespace.getVarName();
+		Obj designObj = Tab.find(designIdentFull);
+		designIdentNamespace.obj = designObj;
+		if (designObj == Tab.noObj ||
+				!(designObj.getKind() == Obj.Con || designObj.getKind() == Obj.Var || designObj.getKind() == Obj.Type || designObj.getKind() == Obj.Meth)) {
+			report_error("Symbol " + designIdentFull + " doesn't exist or can't be addressed in this form!", designIdentNamespace);
+			designIdentNamespace.obj = null;
+			return;
+		}
+	}
+	
+	@Override
+	public void visit(DesignIdent designIdent) {
+		String designIdentFull = currNamespace + designIdent.getVarName();
+		Obj designObj = Tab.find(designIdentFull);
+		designIdent.obj = designObj;
+		if (designObj == Tab.noObj ||
+				!(designObj.getKind() == Obj.Con || designObj.getKind() == Obj.Var || designObj.getKind() == Obj.Type || designObj.getKind() == Obj.Meth)) {
+			report_error("Symbol " + designIdentFull + " doesn't exist or can't be addressed in this form!", designIdent);
+			designIdent.obj = null;
+			return;
+		}
+	}
+	
+	@Override
+	public void visit(DesignArrayAccess designArrayAccess) {
+		Obj designToAccesObj = designArrayAccess.getDesign().obj;
+		designArrayAccess.obj = null;
+		if (designToAccesObj == null) {
+			// Error happened earlier.
+			return;
+		}
+		if (designToAccesObj.getKind() != Obj.Var || designToAccesObj.getType().getKind() != Struct.Array) {
+			report_error("Symbol " + designToAccesObj.getName() + " isn't an array!", designArrayAccess);
+			return;
+		}
+		Struct indexToAccesStruct = designArrayAccess.getExpr().struct;
+		if (indexToAccesStruct == null) { // needed ???
+			// Error happened earlier.
+			return;
+		}
+		if (!indexToAccesStruct.equals(Tab.intType)) {
+			report_error("Index isn't an integer!", designArrayAccess);
+			return;
+		}
+		designArrayAccess.obj = new Obj(Obj.Elem, "arrayElem", designToAccesObj.getType().getElemType());
+	}
+	
+	//=================================================================================
+	// Factor (lvl A) ::=
+	@Override
+	public void visit(FactorConst factorConst) {
+		factorConst.struct = factorConst.getConstValue().obj.getType();
+	}
+	
+	@Override
+	public void visit(FactorDesign factorDesign) {
+		factorDesign.struct = null;
+		if (factorDesign.getDesign().obj == null) {
+			// Error happened earlier.
+			return;
+		}
+		factorDesign.struct = factorDesign.getDesign().obj.getType();
+	}
+	
+	@Override
+	public void visit(FactorExpr factorExpr) {
+		factorExpr.struct = null;
+		if (factorExpr.getExpr().struct == null) {
+			// Error happened earlier.
+			return;
+		}
+		factorExpr.struct = factorExpr.getExpr().struct;
+	}
+	
+	@Override
+	public void visit(FactorNewArrRef factorNewArrRef) {
+		if (currType == null) {
+			factorNewArrRef.struct = null;
+			return;
+		}
+		if (!factorNewArrRef.getExpr().struct.equals(Tab.intType)) {
+			report_error("New array size isn't an integer!", factorNewArrRef);
+			factorNewArrRef.struct = null;
+			return;
+		}
+		factorNewArrRef.struct = new Struct(Struct.Array, currType.getType());
+		report_info("New array instantiated", currType, factorNewArrRef);
+		currType = null;
+	}
+	
+	@Override
+	public void visit(FactorDesignFCall factorDesignFCall) {
+		Obj method = factorDesignFCall.getDesign().obj;
+		factorDesignFCall.struct = null;
+		if (method.getKind() != Obj.Meth) {
+			report_error(method.getName() + "cannot be called, not a method", factorDesignFCall);
+			return;
+		}
+		//currParameters already set in ActPars 
+		if (!areParametersCompatible(method)) {
+			report_error("Incompatible parameter types in method call!", factorDesignFCall);
+			return;
+		}
+		factorDesignFCall.struct = method.getType();
+		currParameters.clear();
+	}
+	//=================================================================================
+	// Term ::=
+	@Override
+	public void visit(NoMulopsTerm noMulopsTerm) {
+		noMulopsTerm.struct = noMulopsTerm.getFactor().struct;
+	}
+
+	@Override
+	public void visit(MulopsTerm mulopsTerm) {
+		if (!mulopsTerm.getTerm().struct.equals(Tab.intType) || !mulopsTerm.getFactor().struct.equals(Tab.intType)) {
+			report_error("Terms to multiply/divide aren't both integers!", mulopsTerm);
+			mulopsTerm.struct = null;
+			return;
+		}
+		mulopsTerm.struct = mulopsTerm.getFactor().struct;
+	}
+	//=================================================================================
+	// Expr ::=
+	@Override
+	public void visit(NoAddopsExpr noAddopsExpr) {
+		noAddopsExpr.struct = noAddopsExpr.getTerm().struct;
+	}
+
+	@Override
+	public void visit(AddopsExpr addopsExpr) {
+		if (!addopsExpr.getExpr().struct.equals(Tab.intType) || !addopsExpr.getTerm().struct.equals(Tab.intType)) {
+			report_error("Terms to add/substract aren't both integers!", addopsExpr);
+			addopsExpr.struct = null;
+			return;
+		}
+		addopsExpr.struct = addopsExpr.getTerm().struct;
+	}
+
+	@Override
+	public void visit(NoAddopsExprNeg noAddopsExprNeg) {
+		if (!noAddopsExprNeg.getTerm().struct.equals(Tab.intType)) {
+			report_error("Term to be negated isn't of type integer!", noAddopsExprNeg);
+			noAddopsExprNeg.struct = null;
+			return;
+		}
+		noAddopsExprNeg.struct = noAddopsExprNeg.getTerm().struct;
+	}
+	//=================================================================================
+	// DesignStatement ::=	
+	@Override
+	public void visit(DesignAssignment designAssignment) {
+		Obj designObj = designAssignment.getDesign().obj;
+		Struct exprStruct = designAssignment.getExpr().struct;
+		if (designObj == null || exprStruct == null) {
+			// Error happened earlier.
+			return;
+		}
+		if (designObj.getKind() != Obj.Var && designObj.getKind() != Obj.Elem && designObj.getKind() != Obj.Fld) {
+			report_error("Designator " + designObj.getName() + " can't be assigned to!", designAssignment);
+			return;
+		}
+		if (!exprStruct.assignableTo(designObj.getType())) {
+			report_error("Expression type incompatible for assigning to " + designObj.getName() + "!", designAssignment);
+			return;
+		}
+	}
+	
+	@Override
+	public void visit(DesignInc designInc) {
+		Obj designObj = designInc.getDesign().obj;
+		if (designObj.getKind() != Obj.Var && designObj.getKind() != Obj.Elem && designObj.getKind() != Obj.Fld) {
+			report_error("Designator " + designObj.getName() + " can't be incremented due to kind!", designInc);
+			return;
+		}
+		if (!designObj.getType().equals(Tab.intType)) {
+			report_error("Designator to increment " + designObj.getName() + "isn't an integer!", designInc);
+			return;
+		}
+	}
+	
+	@Override
+	public void visit(DesignDec designDec) {
+		Obj designObj = designDec.getDesign().obj;
+		if (designObj.getKind() != Obj.Var && designObj.getKind() != Obj.Elem && designObj.getKind() != Obj.Fld) {
+			report_error("Designator " + designObj.getName() + " can't be decremented due to kind!", designDec);
+			return;
+		}
+		if (!designObj.getType().equals(Tab.intType)) {
+			report_error("Designator to decrement " + designObj.getName() + "isn't an integer!", designDec);
+			return;
+		}
+	}
+	
+	@Override
+	public void visit(DesignMethCall designMethCall) {
+		Obj method = designMethCall.getDesign().obj;
+		if (method.getKind() != Obj.Meth) {
+			report_error(method.getName() + "cannot be called, not a method", designMethCall);
+			return;
+		}
+		//currParameters already set in ActPars 
+		if (!areParametersCompatible(method)) {
+			report_error("Incompatible parameter types in method call!", designMethCall);
+			return;
+		}
+		currParameters.clear();
+	}
+	//=================================================================================
+	// ActParsList ::=	
+	@Override
+	public void visit(FirstActPars firstActPars) {
+		Struct exprStruct = firstActPars.getExpr().struct;
+		if (exprStruct == null) {
+			// Error happened earlier.
+			return;
+		}
+		currParameters.add(exprStruct);
+	}
+	
+	@Override
+	public void visit(ListActPars listActPars) {
+		Struct exprStruct = listActPars.getExpr().struct;
+		if (exprStruct == null || currParameters.isEmpty()) {
+			// Error happened earlier.
+			return;
+		}
+		currParameters.add(exprStruct);
 	}
 	
 }
