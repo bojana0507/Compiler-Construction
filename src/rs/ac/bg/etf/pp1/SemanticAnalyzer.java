@@ -282,6 +282,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 				(currType == null) ? Tab.noType : currType.getType());
 		if (currType != null)
 			returnFound = false;
+		else
+			returnFound = true;
 		currMethod.setLevel(0);
 		report_info("Method declaration", currMethod, methName);
 		currType = null;
@@ -367,10 +369,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	public void visit(StmntRetVoid stmntRetVoid) {
 		if (currMethod == null) {
 			report_error("No return allowed outside method body!", stmntRetVoid);
+			return;
 		}
 		if (currMethod.getType() != Tab.noType) {
 			report_error("The method " + currMethod.getName() + " isn't declared to return void!", stmntRetVoid);
-			currMethod = null;
 		}
 	}
 	
@@ -378,11 +380,11 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	public void visit(StmntRetExpr stmntRetExpr) {
 		if (currMethod == null) {
 			report_error("No return allowed outside method body!", stmntRetExpr);
+			return;
 		}
 		Struct exprStruct = stmntRetExpr.getExpr().struct;
 		if (!currMethod.getType().equals(exprStruct)) {
 			report_error("The method " + currMethod.getName() + " isn't declared to return this type!", stmntRetExpr);
-			currMethod = null;
 			return;
 		}
 		returnFound = true;
@@ -430,7 +432,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			// Error happened earlier.
 			return;
 		}
-		if (designToAccesObj.getKind() != Obj.Var || designToAccesObj.getType().getKind() != Struct.Array) {
+		if (designToAccesObj.getType().getKind() != Struct.Array) {
 			report_error("Symbol " + designToAccesObj.getName() + " isn't an array!", designArrayAccess);
 			return;
 		}

@@ -1,0 +1,29 @@
+program p
+
+int x, y;
+const int pet = 5;
+const char c = 'f';
+
+{
+	int f() int a, b; int d[];
+	{
+		a = 10;
+		return a;
+		print(c,1);
+		print(eol);
+		print(a);
+		return x;
+	}
+	
+	void main() int x, i; bool b; int arr[];
+	{
+		arr = new int[5];
+		x = arr[2];
+		b = true;
+		print(f());
+		print((x-1)+(x+5));
+		print(eol);
+		print(b);
+
+	}
+}
