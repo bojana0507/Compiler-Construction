@@ -289,7 +289,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		if (currClass != null) {
 			addParam(methName, "this", currClass.getType());
 		} 
-		else if (methName.getMethName().equals("main")) {
+		else if (methName.getMethName().equalsIgnoreCase("main")) {
 			if (currMethod.getType() != Tab.noType) {
 				report_error("The main() method must be declared void!", methName);
 			} else {
@@ -495,6 +495,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		factorDesignFCall.struct = null;
 		if (method.getKind() != Obj.Meth) {
 			report_error(method.getName() + "cannot be called, not a method", factorDesignFCall);
+			return;
+		}
+		if (method.getType() == Tab.noType) {
+			report_error(method.getName() + " returns void, cannot be assigned", factorDesignFCall);
 			return;
 		}
 		//currParameters already set in ActPars 

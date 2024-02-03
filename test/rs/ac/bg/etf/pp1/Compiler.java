@@ -55,17 +55,15 @@ public class Compiler {
 				log.error("SEMANTIC ERROR DETECTED - process stopped");
 				System.exit(3);
 			}
-//        	File objFile = new File(args[1]);
-//        	log.info("Generating bytecode file: " + objFile.getAbsolutePath());
-//        	if (objFile.exists())
-//        		objFile.delete();
-//        	
-//        	// Code generation...
-//        	CodeGenerator codeGenerator = new CodeGenerator();
-//        	prog.traverseBottomUp(codeGenerator);
-//        	Code.dataSize = semanticCheck.nVars;
-//        	Code.mainPc = codeGenerator.getMainPc();
-//        	Code.write(new FileOutputStream(objFile));
+        	File objFile = new File(args[1]);
+        	log.info("Generating bytecode file: " + objFile.getAbsolutePath());
+        	if (objFile.exists())
+        		objFile.delete();
+        	
+        	// Code generation...
+        	CodeGenerator codeGenerator = new CodeGenerator();
+        	prog.traverseBottomUp(codeGenerator);
+        	Code.write(new FileOutputStream(objFile));
 //	        if (cmd.isDebug()) { nez je l ovo ima smisla
 //				disasm.main(argv);
 //			}

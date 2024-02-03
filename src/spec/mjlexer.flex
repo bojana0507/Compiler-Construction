@@ -89,7 +89,7 @@ import java_cup.runtime.Symbol;
 true|false  { return new_symbol(sym.BOOLCONST, Boolean.parseBoolean (yytext())); }
 ([a-z]|[A-Z])[a-zA-Z0-9_]* 	{return new_symbol (sym.IDENT, yytext()); }
 
-. { System.err.println("Leksicka greska ("+yytext()+") u liniji "+(yyline+1)+" kolona "+(yycolumn+1)); }
+. { throw new RuntimeException("Leksicka greska ("+yytext()+") u liniji "+(yyline+1)+" kolona "+(yycolumn+1)); }
 
 
 

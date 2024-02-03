@@ -212,7 +212,7 @@ Statement 	::=
 			| (StmntBlock) LBRACE Statements RBRACE;
 			
 PrintExtraArgs ::=
-			(PrintExtraArg) COMMA NUMCONST
+			(PrintExtraArg) COMMA NUMCONST:numConst
 			| (NoPrintExtraArgs) /* epsilon */;
 
 ElseStatement ::= 
@@ -232,7 +232,7 @@ DesignStatement ::=
 			| (DesignMethCall) Design LPAREN ActPars RPAREN
 			| (DesignInc) Design INC
 			| (DesignDec) Design DEC
-			| (DesignMultiAssignment) LBRACKET Designs MUL Design RBRACKET ASSIGN Design
+			| (DesignMultiAssignment) LBRACKET Designs MUL Design:designArrDest RBRACKET ASSIGN Design:designArrSrc
 			| (ErrDesign) error SEMI:l
 			{: parser.report_error("Error during assignment construction, recovery to semicolon(;) ", lleft); :};
 
