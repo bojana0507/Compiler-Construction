@@ -65,7 +65,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			report_error("Multiple parameters named " + paramName + "!", null);
 			return;
 		}
-		Obj paramObj = Tab.insert(Obj.Var, currNamespace + paramName, type);
+		Obj paramObj = Tab.insert(Obj.Var, paramName, type);
 		report_info("Defined parameter in method " + currMethod.getName(), paramObj, paramNode);
 		currMethod.setLevel(currMethod.getLevel() + 1);
 		paramObj.setFpPos(currMethod.getLevel());
@@ -143,9 +143,12 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	// Type ::=
 	@Override
 	public void visit(TypeSimple type){
-    	Obj typeObj = Tab.find(type.getTypeName());
+    	Obj typeObj = Tab.find(currNamespace + type.getTypeName());
     	currType = null;
 		type.struct = Tab.noType;
+		if (typeObj == Tab.noObj){
+			typeObj = Tab.find(type.getTypeName());
+		}
     	if (typeObj == Tab.noObj){
     		report_error("No type " + type.getTypeName() + " declared in the symbol table!", type);
     		return;
@@ -172,7 +175,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			report_error("Name " + type.getTypeName() + " is not of namespace kind!", type);
 			return;
 		}
-		String typeName = currNamespace + type.getTypeName();
+		String typeName = namespace + type.getTypeName();
 		Obj typeObj = Tab.find(typeName);
     	if(typeObj == Tab.noObj){
     		report_error("No type " + typeName + " declared in the symbol table!", type);
@@ -289,7 +292,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		currType = null;
 		Tab.openScope();
 		if (currClass != null) {
-			addParam(methName, "this", currClass.getType());
+			addParam(methName, currNamespace+"this", currClass.getType());
 		} 
 		else if (methName.getMethName().equalsIgnoreCase("main")) {
 			if (currMethod.getType() != Tab.noType) {
@@ -320,13 +323,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	// FormParsList ::=
 	@Override
 	public void visit(FirstFormParams firstFormParams) {
-		addParam(firstFormParams, firstFormParams.getName(), firstFormParams.getVarArr().struct);
+		addParam(firstFormParams, currNamespace+firstFormParams.getName(), firstFormParams.getVarArr().struct);
 		currType = null;
 	}
 	
 	@Override
 	public void visit(ListFormParams listFormParams) {
-		addParam(listFormParams, listFormParams.getName(), listFormParams.getVarArr().struct);
+		addParam(listFormParams, currNamespace+listFormParams.getName(), listFormParams.getVarArr().struct);
 		currType = null;
 	}
 	//=================================================================================
@@ -416,8 +419,12 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		String designIdentFull = currNamespace + designIdent.getVarName();
 		Obj designObj = Tab.find(designIdentFull);
 		designIdent.obj = designObj;
-		if (designObj == Tab.noObj ||
-				!(designObj.getKind() == Obj.Con || designObj.getKind() == Obj.Var || designObj.getKind() == Obj.Type || designObj.getKind() == Obj.Meth)) {
+		if (designObj == Tab.noObj && !currNamespace.equals("")) {
+			designIdentFull = designIdent.getVarName();
+			designObj = Tab.find(designIdentFull);
+			designIdent.obj = designObj;
+		}
+		if (designObj == Tab.noObj || (!(designObj.getKind() == Obj.Con || designObj.getKind() == Obj.Var || designObj.getKind() == Obj.Type || designObj.getKind() == Obj.Meth))) {
 			report_error("Symbol " + designIdentFull + " doesn't exist or can't be addressed in this form!", designIdent);
 			designIdent.obj = null;
 			return;
@@ -437,7 +444,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			return;
 		}
 		Struct indexToAccesStruct = designArrayAccess.getExpr().struct;
-		if (indexToAccesStruct == null) { // needed ???
+		if (indexToAccesStruct == null) {
 			// Error happened earlier.
 			return;
 		}
@@ -493,22 +500,26 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	
 	@Override
 	public void visit(FactorDesignFCall factorDesignFCall) {
-		Obj method = factorDesignFCall.getDesign().obj;
+		Obj methodObj = factorDesignFCall.getDesign().obj;
 		factorDesignFCall.struct = null;
-		if (method.getKind() != Obj.Meth) {
-			report_error(method.getName() + "cannot be called, not a method", factorDesignFCall);
+		if (methodObj == null) {
+			// Error happened earlier.
 			return;
 		}
-		if (method.getType() == Tab.noType) {
-			report_error(method.getName() + " returns void, cannot be assigned", factorDesignFCall);
+		if (methodObj.getKind() != Obj.Meth) {
+			report_error(methodObj.getName() + "cannot be called, not a method", factorDesignFCall);
+			return;
+		}
+		if (methodObj.getType() == Tab.noType) {
+			report_error(methodObj.getName() + " returns void, cannot be assigned", factorDesignFCall);
 			return;
 		}
 		//currParameters already set in ActPars 
-		if (!areParametersCompatible(method)) {
+		if (!areParametersCompatible(methodObj)) {
 			report_error("Incompatible parameter types in method call!", factorDesignFCall);
 			return;
 		}
-		factorDesignFCall.struct = method.getType();
+		factorDesignFCall.struct = methodObj.getType();
 		currParameters.clear();
 	}
 	//=================================================================================
@@ -553,6 +564,63 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		}
 		noAddopsExprNeg.struct = noAddopsExprNeg.getTerm().struct;
 	}
+	//=================================================================================
+	// CondFact ::=	
+	@Override
+	public void visit(NoCondRelops noCondRelops) {
+		noCondRelops.struct = noCondRelops.getExpr().struct;
+	}
+	
+	@Override
+	public void visit(CondRelops condRelops) {
+		Struct expr1Obj = condRelops.getExpr().struct;
+		Struct expr2Obj = condRelops.getExpr1().struct;
+		if (!(expr1Obj.compatibleWith(expr2Obj))) {
+			report_error("Expressions aren't compatible to compare!", condRelops);
+			condRelops.struct = null;
+			return;
+		}
+		if (expr1Obj.isRefType() || expr2Obj.isRefType()) {
+			if (!((condRelops.getRelops() instanceof EqualOp) || (condRelops.getRelops() instanceof NotEqualOp))) {
+				report_error("Expressions of type array/class can't be compared this way!", condRelops);
+				condRelops.struct = null;
+				return;
+			}
+		}
+		condRelops.struct = boolType;
+	}
+	//=================================================================================
+	// CondTerm ::=	
+	@Override
+	public void visit(NoCondAnd noCondAnd) {
+		noCondAnd.struct = noCondAnd.getCondFact().struct;
+	}
+	
+	@Override
+	public void visit(CondAnd condAnd) {
+		if (!condAnd.getCondTerm().struct.equals(boolType) || !condAnd.getCondFact().struct.equals(boolType)) {
+			report_error("Condition factors aren't both boolean!", condAnd);
+			condAnd.struct = null;
+			return;
+		}
+		condAnd.struct = condAnd.getCondTerm().struct;
+	}	
+	//=================================================================================
+	// Condition ::=	
+	@Override
+	public void visit(NoCondOr noCondOr) {
+		noCondOr.struct = noCondOr.getCondTerm().struct;
+	}
+
+	@Override
+	public void visit(CondOr condOr) {
+		if (!condOr.getCondition().struct.equals(boolType) || !condOr.getCondTerm().struct.equals(boolType)) {
+			report_error("Condition terms aren't both boolean!", condOr);
+			condOr.struct = null;
+			return;
+		}
+		condOr.struct = condOr.getCondition().struct;
+	}	
 	//=================================================================================
 	// DesignStatement ::=	
 	@Override

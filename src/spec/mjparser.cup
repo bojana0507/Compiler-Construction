@@ -56,7 +56,7 @@ terminal String IDENT;
 
 nonterminal Namespaces, GlobalDecls, GlobalDecl, ConstDecl, ConstDecls, ConstDeclSingle, VarDecl, VarDecls, VarDeclSingle, LocalVarDecls;
 nonterminal MethodDecls, ReturnType, FormPars, FormParsList, Statements, Statement, PrintExtraArgs, DesignStatements, DesignStatementsList, DesignStatement, Designs;
-nonterminal ActPars, ActParsList, Relops, Addops, Mulops, ElseStatement;
+nonterminal ActPars, ActParsList, Relops, Addops, Mulops, ElseStatement, BeforeThen, BeforeElse;
 nonterminal ClassDecl, Extends, ClassMethodDecls, StaticVarDecl, StaticInitializer, StaticInitializers, StaticThings;
 
 nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program, ConstValue, NamespaceName, MethName, MethodDecl, Design;
@@ -197,7 +197,7 @@ Statements 	::=
 			
 Statement 	::= 
 			(StmntDesign) DesignStatement SEMI
-			| (StmntIfElse) IF LPAREN Condition RPAREN Statement ElseStatement
+			| (StmntIfElse) IF LPAREN Condition RPAREN BeforeThen Statement BeforeElse ElseStatement
 			| (ErrStmntIf) IF LPAREN error RPAREN:l
 			{: parser.report_error("Error during if logic conditions declaration, recovery to right parenthesis(')') ", lleft); :}
 			Statement ElseStatement
@@ -214,6 +214,9 @@ Statement 	::=
 PrintExtraArgs ::=
 			(PrintExtraArg) COMMA NUMCONST:numConst
 			| (NoPrintExtraArgs) /* epsilon */;
+
+BeforeThen	::= (BeforeThen) /* epsilon */;
+BeforeElse	::= (BeforeElse) /* epsilon */;
 
 ElseStatement ::= 
 			(StmntElse) ELSE Statement
