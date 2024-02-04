@@ -21,6 +21,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	private Obj currMethod = null;
 	private String currNamespace = "";
 	private boolean returnFound = true;
+	private int numLoops = 0;
 	private List<Struct> currParameters = new ArrayList<>();
 	
 	public static Struct boolType = new Struct(Struct.Bool);
@@ -339,7 +340,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		currType = null;
 	}
 	//=================================================================================
-	// Statement (lvl A) ::=
+	// Statement ::= basic ones
 	@Override
 	public void visit(StmntRead stmntRead) {
 		Obj designObj = stmntRead.getDesign().obj;
@@ -391,6 +392,46 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			return;
 		}
 		returnFound = true;
+	}
+	//=================================================================================
+	// Statement ::= for parts
+	@Override
+	public void visit(BeforeFor beforeFor) {
+		++numLoops;
+	}
+	@Override
+	public void visit(StmntContinue beforeFor) {
+		if (numLoops == 0) {
+			report_error("No continue allowed outside for loop!", beforeFor);
+			return;
+		}
+	}
+	@Override
+	public void visit(StmntBreak beforeBreak) {
+		if (numLoops == 0) {
+			report_error("No break allowed outside for loop!", beforeBreak);
+			return;
+		}
+	}
+	@Override
+	public void visit(StmntForCond stmntForCond) {
+		--numLoops;
+	}
+	@Override
+	public void visit(CondFactFor condFactFor) {
+		if (!condFactFor.getCondFact().struct.equals(boolType)) {
+			report_error("Condition in for loop isn't boolean!", condFactFor);
+			return;
+		}
+	}
+	//=================================================================================
+	// Statement ::= if parts
+	@Override
+	public void visit(StmntIfElse stmntIfElse) {
+		if (!stmntIfElse.getCondition().struct.equals(boolType)) {
+			report_error("Condition in if condition isn't boolean!", stmntIfElse);
+			return;
+		}
 	}
 	//=================================================================================
 	// Design (lvl B) ::=
@@ -456,7 +497,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	}
 	
 	//=================================================================================
-	// Factor (lvl A) ::=
+	// Factor (lvl B) ::=
 	@Override
 	public void visit(FactorConst factorConst) {
 		factorConst.struct = factorConst.getConstValue().obj.getType();

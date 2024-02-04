@@ -57,6 +57,7 @@ terminal String IDENT;
 nonterminal Namespaces, GlobalDecls, GlobalDecl, ConstDecl, ConstDecls, ConstDeclSingle, VarDecl, VarDecls, VarDeclSingle, LocalVarDecls;
 nonterminal MethodDecls, ReturnType, FormPars, FormParsList, Statements, Statement, PrintExtraArgs, DesignStatements, DesignStatementsList, DesignStatement, Designs;
 nonterminal ActPars, ActParsList, Relops, Addops, Mulops, ElseStatement, BeforeIf, BeforeThen, BeforeElse;
+nonterminal BeforeFor, BeforeCond, LoopStart, CondFor;
 nonterminal ClassDecl, Extends, ClassMethodDecls, StaticVarDecl, StaticInitializer, StaticInitializers, StaticThings;
 
 nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program, ConstValue, NamespaceName, MethName, MethodDecl, Design;
@@ -207,13 +208,19 @@ Statement 	::=
 			| (StmntRetVoid) RETURN SEMI
 			| (StmntRead) READ LPAREN Design RPAREN SEMI
 			| (StmntPrint) PRINT LPAREN Expr PrintExtraArgs RPAREN SEMI
-			| (StmntForCond) FOR LPAREN DesignStatements SEMI CondFact SEMI DesignStatements RPAREN Statement
-			| (StmntForNoCond) FOR LPAREN DesignStatements SEMI SEMI DesignStatements RPAREN Statement
+			| (StmntForCond) FOR LPAREN BeforeFor DesignStatements SEMI BeforeCond CondFor SEMI DesignStatements RPAREN LoopStart Statement
 			| (StmntBlock) LBRACE Statements RBRACE;
 			
 PrintExtraArgs ::=
 			(PrintExtraArg) COMMA NUMCONST:numConst
 			| (NoPrintExtraArgs) /* epsilon */;
+
+CondFor 	::= (CondFactFor) CondFact
+			| (NoCondFor) /* epsilon */;
+
+BeforeFor	::= (BeforeFor) /* epsilon */;
+BeforeCond	::= (BeforeCond) /* epsilon */;
+LoopStart	::= (LoopStart) /* epsilon */;
 
 BeforeIf	::= (BeforeIf) /* epsilon */;
 BeforeThen	::= (BeforeThen) /* epsilon */;

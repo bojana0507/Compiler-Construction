@@ -7,10 +7,13 @@ import java.util.HashMap;
 
 import rs.ac.bg.etf.pp1.ast.AddOp;
 import rs.ac.bg.etf.pp1.ast.AddopsExpr;
+import rs.ac.bg.etf.pp1.ast.BeforeCond;
 import rs.ac.bg.etf.pp1.ast.BeforeElse;
+import rs.ac.bg.etf.pp1.ast.BeforeFor;
 import rs.ac.bg.etf.pp1.ast.BeforeIf;
 import rs.ac.bg.etf.pp1.ast.BeforeThen;
 import rs.ac.bg.etf.pp1.ast.CondAnd;
+import rs.ac.bg.etf.pp1.ast.CondFactFor;
 import rs.ac.bg.etf.pp1.ast.CondOr;
 import rs.ac.bg.etf.pp1.ast.CondRelops;
 import rs.ac.bg.etf.pp1.ast.Design;
@@ -33,19 +36,22 @@ import rs.ac.bg.etf.pp1.ast.GreaterEqualOp;
 import rs.ac.bg.etf.pp1.ast.GreaterOp;
 import rs.ac.bg.etf.pp1.ast.LessEqualOp;
 import rs.ac.bg.etf.pp1.ast.LessOp;
+import rs.ac.bg.etf.pp1.ast.LoopStart;
 import rs.ac.bg.etf.pp1.ast.MethDecl;
 import rs.ac.bg.etf.pp1.ast.MethName;
 import rs.ac.bg.etf.pp1.ast.MulOp;
 import rs.ac.bg.etf.pp1.ast.MulopsTerm;
 import rs.ac.bg.etf.pp1.ast.NoAddopsExprNeg;
 import rs.ac.bg.etf.pp1.ast.NoCondAnd;
+import rs.ac.bg.etf.pp1.ast.NoCondFor;
 import rs.ac.bg.etf.pp1.ast.NoCondOr;
 import rs.ac.bg.etf.pp1.ast.NoCondRelops;
 import rs.ac.bg.etf.pp1.ast.NoPrintExtraArgs;
 import rs.ac.bg.etf.pp1.ast.NotEqualOp;
 import rs.ac.bg.etf.pp1.ast.PrintExtraArg;
-import rs.ac.bg.etf.pp1.ast.Relops;
-import rs.ac.bg.etf.pp1.ast.StmntElse;
+import rs.ac.bg.etf.pp1.ast.StmntBreak;
+import rs.ac.bg.etf.pp1.ast.StmntContinue;
+import rs.ac.bg.etf.pp1.ast.StmntForCond;
 import rs.ac.bg.etf.pp1.ast.StmntIfElse;
 import rs.ac.bg.etf.pp1.ast.StmntPrint;
 import rs.ac.bg.etf.pp1.ast.StmntRead;
@@ -60,10 +66,8 @@ import rs.etf.pp1.symboltable.concepts.Struct;
 
 public class CodeGenerator extends VisitorAdaptor {
 	
-	private List<Integer> thenAdrs = new ArrayList<>();
-	private List<Integer> elseAdrs = new ArrayList<>();
-	private List<Integer> afterAdrs = new ArrayList<>();
-	private ArrayDeque<List<List<Integer>>> patches = new ArrayDeque<>();
+	private ArrayDeque<List<List<Integer>>> patchesIf = new ArrayDeque<>();
+	private ArrayDeque<List<List<Integer>>> patchesFor = new ArrayDeque<>();
 	private int condLevels = 4;
 
 	//=================================================================================
@@ -176,12 +180,11 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	@Override
 	public void visit(StmntIfElse stmntIfElse) {
-//		afterAdrs.add(0, Code.pc);
-		for (Integer i : patches.peek().get(3)) {
+		for (Integer i : patchesIf.peek().get(3)) {
 			Code.fixup(i);
 		}
-		patches.peek().get(3).clear();
-		patches.pop();
+		patchesIf.peek().get(3).clear();
+		patchesIf.pop();
 	}
 	
 	@Override
@@ -189,29 +192,92 @@ public class CodeGenerator extends VisitorAdaptor {
 		List<List<Integer>> newIfElseBlock = new ArrayList<>();
 		for (int i = 0; i < condLevels; ++i)
 			newIfElseBlock.add(new ArrayList<Integer>());
-		patches.push(newIfElseBlock);
+		patchesIf.push(newIfElseBlock);
 	}
 	
 	@Override
 	public void visit(BeforeThen beforeThen) {
-//		thenAdrs.add(0, Code.pc);
-		Code.putJump(0); //then branch happened -> jump to adr(after if)
-		patches.peek().get(2).add(Code.pc - 2);
-		for (Integer i : patches.peek().get(1)) {
+		Code.putJump(0); // condition incorrect -> jump to adr(else)
+		patchesIf.peek().get(2).add(Code.pc - 2);
+		for (Integer i : patchesIf.peek().get(1)) {
 			Code.fixup(i);
 		}
-		patches.peek().get(1).clear();
+		patchesIf.peek().get(1).clear();
 	}
 	
 	@Override
-	public void visit(BeforeElse stmntElse) {
-//		elseAdrs.add(0, Code.pc);
+	public void visit(BeforeElse beforeElse) {
 		Code.putJump(0); //then branch happened -> jump to adr(after if)
-		patches.peek().get(3).add(Code.pc - 2);
-		for (Integer i : patches.peek().get(2)) {
+		patchesIf.peek().get(3).add(Code.pc - 2);
+		for (Integer i : patchesIf.peek().get(2)) {
 			Code.fixup(i);
 		}
-		patches.peek().get(2).clear();
+		patchesIf.peek().get(2).clear();
+	}
+
+	@Override
+	public void visit(StmntForCond stmntForCond) {
+		for (Integer i : patchesFor.peek().get(2)) {
+			Code.putJump(i); //loop back to (;;here)
+		}
+		patchesFor.peek().get(2).clear();
+		for (Integer i : patchesFor.peek().get(0)) {
+			Code.fixup(i);
+		}
+		patchesFor.peek().get(0).clear();
+		patchesFor.pop();
+	}
+	
+	@Override
+	public void visit(BeforeFor beforeFor) {
+		List<List<Integer>> newForBlock = new ArrayList<>();
+		for (int i = 0; i < condLevels; ++i)
+			newForBlock.add(new ArrayList<Integer>());
+		patchesFor.push(newForBlock);
+	}
+	
+	@Override
+	public void visit(BeforeCond beforeCond) {
+		patchesFor.peek().get(3).add(Code.pc); // jump here to check if new loop(;here;)
+	}
+	
+	@Override
+	public void visit(NoCondFor noCondFor) {
+		Code.putJump(0); // jump to loop start
+		patchesFor.peek().get(1).add(Code.pc-2);
+		patchesFor.peek().get(2).add(Code.pc); // jump here to do the after loop statements(;;here)
+	}
+	
+	@Override
+	public void visit(CondFactFor condFactFor) {
+		Code.putJump(0); // jump to loop start
+		patchesFor.peek().get(1).add(Code.pc-2);
+		patchesFor.peek().get(2).add(Code.pc); // jump here to do the after loop statements(;;here)
+	}
+	
+	@Override
+	public void visit(LoopStart loopStart) {
+		for (Integer i : patchesFor.peek().get(3)) {
+			Code.putJump(i); // jump to before cond to check
+		}
+		patchesFor.peek().get(3).clear();
+		for (Integer i : patchesFor.peek().get(1)) { 
+			Code.fixup(i); // jump here to start loop statements(;;)here
+		}
+		patchesFor.peek().get(1).clear();
+	}
+	
+	@Override
+	public void visit(StmntBreak stmntBreak) {
+		Code.putJump(0); // jump to loop start
+		patchesFor.peek().get(0).add(Code.pc-2);
+	}
+	
+	@Override
+	public void visit(StmntContinue stmntContinue) {
+		for (Integer i : patchesFor.peek().get(2)) {
+			Code.putJump(i); //loop back to (;;here)
+		}
 	}
 	//=================================================================================
 	// Design (lvl B) ::=
@@ -294,7 +360,12 @@ public class CodeGenerator extends VisitorAdaptor {
 	public void visit(NoCondRelops noCondRelops) {
 		Code.loadConst(1);
 		Code.putFalseJump(Code.eq, 0); //one condfact is false -> condterm is false -> jump to adr(after condterm)
-		patches.peek().get(0).add(Code.pc - 2);
+		if (noCondRelops.getParent().getClass().equals(CondFactFor.class)) {
+			patchesFor.peek().get(0).add(Code.pc-2);
+		}
+		else {
+			patchesIf.peek().get(0).add(Code.pc-2);
+		}
 	}
 	
 	@Override
@@ -307,7 +378,12 @@ public class CodeGenerator extends VisitorAdaptor {
 		ops.put(LessOp.class, Code.lt);
 		ops.put(LessEqualOp.class, Code.le);
 		Code.putFalseJump(ops.get(condRelops.getRelops().getClass()), 0); //one condfact is false -> condterm is false -> jump to adr(after condterm)
-		patches.peek().get(0).add(Code.pc - 2);
+		if (condRelops.getParent().getClass().equals(CondFactFor.class)) {
+			patchesFor.peek().get(0).add(Code.pc-2);
+		}
+		else {
+			patchesIf.peek().get(0).add(Code.pc-2);
+		}
 	}
 	//=================================================================================
 	// CondTerm ::=	
@@ -323,23 +399,21 @@ public class CodeGenerator extends VisitorAdaptor {
 	@Override
 	public void visit(NoCondOr noCondOr) {
 		Code.putJump(0); //all condfacts are true -> condterm is true -> condition is true -> jump to adr(if)
-		patches.peek().get(1).add(Code.pc - 2);
-		Class<? extends SyntaxNode> parentClass = noCondOr.getParent().getClass();
-		for (Integer i : patches.peek().get(0)) {
+		patchesIf.peek().get(1).add(Code.pc - 2);
+		for (Integer i : patchesIf.peek().get(0)) {
 			Code.fixup(i);
 		}
-		patches.peek().get(0).clear();
+		patchesIf.peek().get(0).clear();
 	}
 
 	@Override
 	public void visit(CondOr condOr) {
 		Code.putJump(0); //all condfacts are true -> condterm is true -> condition is true -> jump to adr(if)
-		patches.peek().get(1).add(Code.pc - 2);
-		Class<? extends SyntaxNode> parentClass = condOr.getParent().getClass();
-		for (Integer i : patches.peek().get(0)) {
+		patchesIf.peek().get(1).add(Code.pc - 2);
+		for (Integer i : patchesIf.peek().get(0)) {
 			Code.fixup(i);
 		}
-		patches.peek().get(0).clear();
+		patchesIf.peek().get(0).clear();
 	}	
 	//=================================================================================
 	// DesignStatement ::=	
