@@ -4,6 +4,7 @@
 /src/rs/ac/bg/etf/pp1/Yylex*
 /src/rs/ac/bg/etf/pp1/*.java
 !/src/rs/ac/bg/etf/pp1/SemanticAnalyzer.java
+!/src/rs/ac/bg/etf/pp1/CodeGenerator.java
 /src/spec/*_astbuild.cup
 /logs
 *.obj
