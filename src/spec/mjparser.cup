@@ -55,12 +55,12 @@ terminal Character CHARCONST;
 terminal String IDENT;
 
 nonterminal Namespaces, GlobalDecls, GlobalDecl, ConstDecl, ConstDecls, ConstDeclSingle, VarDecl, VarDecls, VarDeclSingle, LocalVarDecls;
-nonterminal MethodDecls, ReturnType, FormPars, FormParsList, Statements, Statement, PrintExtraArgs, DesignStatements, DesignStatementsList, DesignStatement, Designs;
+nonterminal MethodDecls, ReturnType, FormPars, FormParsList, Statements, Statement, PrintExtraArgs, DesignStatements, DesignStatementsList, DesignStatement;
 nonterminal ActPars, ActParsList, Relops, Addops, Mulops, ElseStatement, BeforeIf, BeforeThen, BeforeElse;
 nonterminal BeforeFor, BeforeCond, LoopStart, CondFor;
 nonterminal ClassDecl, Extends, ClassMethodDecls, StaticVarDecl, StaticInitializer, StaticInitializers, StaticThings;
 
-nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program, ConstValue, NamespaceName, MethName, MethodDecl, Design;
+nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, Program, ConstValue, NamespaceName, MethName, MethodDecl, Design, Designs;
 nonterminal rs.etf.pp1.symboltable.concepts.Struct Type, VarArr, Expr, Term, Factor, Condition, CondTerm, CondFact;
 
 precedence left ELSE;

@@ -26,6 +26,9 @@ import rs.ac.bg.etf.pp1.ast.DesignIdentNamespace;
 import rs.ac.bg.etf.pp1.ast.DesignInc;
 import rs.ac.bg.etf.pp1.ast.DesignMethCall;
 import rs.ac.bg.etf.pp1.ast.DesignMultiAssignment;
+import rs.ac.bg.etf.pp1.ast.DesignsListDesign;
+import rs.ac.bg.etf.pp1.ast.DesignsListFirstDesign;
+import rs.ac.bg.etf.pp1.ast.DesignsListNoDesign;
 import rs.ac.bg.etf.pp1.ast.DivOp;
 import rs.ac.bg.etf.pp1.ast.EqualOp;
 import rs.ac.bg.etf.pp1.ast.FactorConst;
@@ -46,6 +49,7 @@ import rs.ac.bg.etf.pp1.ast.NoCondAnd;
 import rs.ac.bg.etf.pp1.ast.NoCondFor;
 import rs.ac.bg.etf.pp1.ast.NoCondOr;
 import rs.ac.bg.etf.pp1.ast.NoCondRelops;
+import rs.ac.bg.etf.pp1.ast.NoDesignsList;
 import rs.ac.bg.etf.pp1.ast.NoPrintExtraArgs;
 import rs.ac.bg.etf.pp1.ast.NotEqualOp;
 import rs.ac.bg.etf.pp1.ast.PrintExtraArg;
@@ -68,6 +72,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	private ArrayDeque<List<List<Integer>>> patchesIf = new ArrayDeque<>();
 	private ArrayDeque<List<List<Integer>>> patchesFor = new ArrayDeque<>();
+	private List<Obj> arrayAssignDests= new ArrayList<>();
 	private int condLevels = 4;
 
 	//=================================================================================
@@ -84,11 +89,11 @@ public class CodeGenerator extends VisitorAdaptor {
 		) {
 			return true;
 		}
-		if (parentClass.equals(DesignMultiAssignment.class)) {
-			if (((DesignMultiAssignment) design.getParent()).getDesign1().equals(design)) { //valjda???
-				return true;
-			}
-		}
+//		if (parentClass.equals(DesignMultiAssignment.class)) {
+//			if (((DesignMultiAssignment) design.getParent()).getDesign1().equals(design)) { //valjda???
+//				return true;
+//			}
+//		}
 		return false;
 	}
 	
@@ -445,4 +450,96 @@ public class CodeGenerator extends VisitorAdaptor {
 			Code.put(Code.pop);
 		}
 	}
+	
+	//=================================================================================
+	// Designs ::=
+
+	@Override
+	public void visit(DesignsListFirstDesign designsListFirstDesign) {
+		arrayAssignDests.add(designsListFirstDesign.obj);
+	}
+	
+	@Override
+	public void visit(DesignsListDesign designsListDesign) {
+		arrayAssignDests.add(designsListDesign.obj);
+	}
+	
+	@Override
+	public void visit(DesignMultiAssignment designMultiAssignment) {
+		Obj designArrDst = designMultiAssignment.getDesign().obj;
+		Obj designArrSrc = designMultiAssignment.getDesign1().obj;
+		int errorAdr, jumpAdr, loopArraysAssign;
+		int i = 0;
+		boolean isChar = (designArrSrc.getType().getElemType().getKind() == Struct.Char);
+		
+		
+		Code.putJump(0);
+		jumpAdr = Code.pc-2;
+		String errorMsg = "Bad arr assign!"; // Comment if too big for buffer
+		errorAdr = Code.pc;
+		for (char c : errorMsg.toCharArray()) {
+			Code.loadConst(c);
+			Code.loadConst(1);
+			Code.put(Code.bprint);
+		}
+		Code.put(Code.trap);
+		Code.put(2);
+		
+		Code.fixup(jumpAdr);
+		Code.loadConst(0);
+		for (Obj dest : arrayAssignDests) {
+			Code.put(Code.dup); //one for check, other for next loop inc and check,...
+			loadArr(designArrSrc);
+			Code.put(Code.arraylength);
+			Code.putFalseJump(Code.ne, errorAdr);
+			loadArr(designArrSrc);
+			Code.loadConst(i);
+			if (isChar) Code.put(Code.baload);
+	        else Code.put(Code.aload);
+			Code.store(dest);
+			Code.loadConst(1);
+			Code.put(Code.add);
+			++i;
+		}
+		loadArr(designArrSrc);
+		Code.put(Code.arraylength);
+		Code.putFalseJump(Code.ne, errorAdr); //nothing left for arrDst
+		
+		Code.loadConst(0);
+		loopArraysAssign = Code.pc;
+		loadArr(designArrDst);
+		Code.put(Code.dup2);
+		Code.put(Code.pop); //only need the dst counter
+		Code.put(Code.dup); //for calculating the src index
+		Code.loadConst(i);
+		Code.put(Code.add);
+		loadArr(designArrSrc);
+		Code.put(Code.dup2);
+		Code.put(Code.pop); //only need the src index
+		if (isChar) Code.put(Code.baload);
+        else Code.put(Code.aload);
+		if (isChar) Code.put(Code.bastore);
+        else Code.put(Code.astore);
+		Code.loadConst(1);
+		Code.put(Code.add); //inc the dst counter 
+		Code.put(Code.dup);
+		loadArr(designArrDst);
+		Code.put(Code.arraylength);
+		Code.putFalseJump(Code.ge, loopArraysAssign);
+		Code.put(Code.pop);
+	}
+	
+	void loadArr (Obj o) {
+		if (o.getLevel()==0) { // global variable 
+			Code.put(Code.getstatic); Code.put2(o.getAdr()); 
+	  	  	return; 
+		}
+		// local variable
+		if (0 <= o.getAdr() && o.getAdr() <= 3) 
+			Code.put(Code.load_n + o.getAdr());
+		else { 
+			Code.put(Code.load); Code.put(o.getAdr()); 
+		} 
+	}
+	
 }

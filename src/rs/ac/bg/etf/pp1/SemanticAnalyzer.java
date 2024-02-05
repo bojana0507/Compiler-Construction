@@ -722,6 +722,80 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		}
 		currParameters.clear();
 	}
+	
+	@Override
+	public void visit(DesignMultiAssignment designMultiAssignment) {
+		Obj designsDst = designMultiAssignment.getDesigns().obj;
+		Obj designArrDst = designMultiAssignment.getDesign().obj;
+		Obj designArrSrc = designMultiAssignment.getDesign1().obj;
+		if (designArrSrc.getType().getKind() != Struct.Array) {
+			report_error("Value on the right side isn't of array type!", designMultiAssignment);
+			return;
+		}
+		if (designArrDst.getType().getKind() != Struct.Array) {
+			report_error("Value of * on the left side isn't of array type!", designMultiAssignment);
+			return;
+		}
+		if (designsDst == null) {
+			report_error("Values on the left side aren't of the right kind or have different types!", designMultiAssignment);
+			return;
+		}
+		if (!designArrSrc.getType().assignableTo(designArrDst.getType()) && !designArrSrc.getType().getElemType().assignableTo(designsDst.getType())) {
+			report_error("Designators have to be of comatible (assignable) types!", designMultiAssignment);
+			return;
+		}
+	}
+	//=================================================================================
+	// Designs ::=
+	@Override
+	public void visit(DesignsListNoDesign designsListNoDesign) {
+		designsListNoDesign.obj = null;
+		Obj designsBeforeObj = designsListNoDesign.getDesigns().obj;
+		if (designsBeforeObj == null) {
+			// Error happened earlier.
+			return;
+		}
+		designsListNoDesign.obj = designsBeforeObj;
+	}
+	
+	@Override
+	public void visit(DesignsListFirstDesign designsListFirstDesign) {
+		designsListFirstDesign.obj = null;
+		Obj designObj = designsListFirstDesign.getDesign().obj;
+		if (designObj == null) {
+			// Error happened earlier.
+			return;
+		}
+		if (designObj.getKind() != Obj.Var && designObj.getKind() != Obj.Elem && designObj.getKind() != Obj.Fld) {
+			report_error("First designator isn't of variable, elem nor field kind!", designsListFirstDesign);
+			return;
+		}
+		designsListFirstDesign.obj = designObj;
+	}
+	
+	@Override
+	public void visit(DesignsListDesign designsListDesign) {
+		designsListDesign.obj = null;
+		Obj designsBeforeObj = designsListDesign.getDesigns().obj;
+		Obj designObj = designsListDesign.getDesign().obj;
+		if (designsBeforeObj == null || designObj == null) {
+			// Error happened earlier.
+			return;
+		}
+		if (designObj.getKind() != Obj.Var && designObj.getKind() != Obj.Elem && designObj.getKind() != Obj.Fld) {
+			report_error("Designator isn't of variable, elem nor field kind!", designsListDesign);
+			return;
+		}
+		if (!designsBeforeObj.getType().equals(Tab.noObj.getType()) && !designsBeforeObj.getType().equals(designObj.getType())) {
+			report_error("Designators have to be of the same type!", designsListDesign);
+			return;
+		}
+		designsListDesign.obj = designObj;
+	}
+	@Override
+	public void visit(NoDesignsList noDesignsList) {
+		noDesignsList.obj = Tab.noObj;
+	}
 	//=================================================================================
 	// ActParsList ::=	
 	@Override
