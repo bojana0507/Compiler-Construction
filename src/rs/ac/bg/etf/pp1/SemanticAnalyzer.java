@@ -81,6 +81,21 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			Obj formParam = formParams.get(i);
 			int pos = formParam.getFpPos();
 			if (pos == 0) { // a local variable, not formal parameter
+				if (method.getName().equals("ord")) {
+					if (!currParameters.get(0).equals(Tab.charType)) {
+						return false;
+					}
+				}
+				if (method.getName().equals("chr")) {
+					if (!currParameters.get(0).equals(Tab.intType)) {
+						return false;
+					}
+				}
+				if (method.getName().equals("len")) {
+					if (currParameters.get(0).getKind() != Struct.Array) {
+						return false;
+					}
+				}
 				continue;
 			}
 			if (!(currParameters.get(pos - 1)).assignableTo(formParam.getType())) {
@@ -428,6 +443,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	// Statement ::= if parts
 	@Override
 	public void visit(StmntIfElse stmntIfElse) {
+		if (errorDetected) {
+			// Error happened earlier.
+			return;
+		}
 		if (!stmntIfElse.getCondition().struct.equals(boolType)) {
 			report_error("Condition in if condition isn't boolean!", stmntIfElse);
 			return;
@@ -557,6 +576,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		}
 		//currParameters already set in ActPars 
 		if (!areParametersCompatible(methodObj)) {
+			currParameters.clear();
 			report_error("Incompatible parameter types in method call!", factorDesignFCall);
 			return;
 		}
@@ -572,9 +592,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 
 	@Override
 	public void visit(MulopsTerm mulopsTerm) {
+		mulopsTerm.struct = null;
+		if (mulopsTerm.getTerm().struct == null || mulopsTerm.getFactor().struct == null) {
+			// Error happened earlier.
+			return;
+		}
 		if (!mulopsTerm.getTerm().struct.equals(Tab.intType) || !mulopsTerm.getFactor().struct.equals(Tab.intType)) {
 			report_error("Terms to multiply/divide aren't both integers!", mulopsTerm);
-			mulopsTerm.struct = null;
 			return;
 		}
 		mulopsTerm.struct = mulopsTerm.getFactor().struct;
@@ -588,9 +612,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 
 	@Override
 	public void visit(AddopsExpr addopsExpr) {
+		addopsExpr.struct = null;
+		if (addopsExpr.getTerm().struct == null || addopsExpr.getExpr().struct == null) {
+			// Error happened earlier.
+			return;
+		}
 		if (!addopsExpr.getExpr().struct.equals(Tab.intType) || !addopsExpr.getTerm().struct.equals(Tab.intType)) {
 			report_error("Terms to add/substract aren't both integers!", addopsExpr);
-			addopsExpr.struct = null;
 			return;
 		}
 		addopsExpr.struct = addopsExpr.getTerm().struct;
@@ -598,9 +626,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 
 	@Override
 	public void visit(NoAddopsExprNeg noAddopsExprNeg) {
+		noAddopsExprNeg.struct = null;
+		if (noAddopsExprNeg.getTerm().struct == null) {
+			// Error happened earlier.
+			return;
+		}
 		if (!noAddopsExprNeg.getTerm().struct.equals(Tab.intType)) {
 			report_error("Term to be negated isn't of type integer!", noAddopsExprNeg);
-			noAddopsExprNeg.struct = null;
 			return;
 		}
 		noAddopsExprNeg.struct = noAddopsExprNeg.getTerm().struct;
@@ -639,9 +671,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	
 	@Override
 	public void visit(CondAnd condAnd) {
+		condAnd.struct = null;
+		if (condAnd.getCondTerm().struct == null || condAnd.getCondFact().struct == null) {
+			// Error happened earlier.
+			return;
+		}
 		if (!condAnd.getCondTerm().struct.equals(boolType) || !condAnd.getCondFact().struct.equals(boolType)) {
 			report_error("Condition factors aren't both boolean!", condAnd);
-			condAnd.struct = null;
 			return;
 		}
 		condAnd.struct = condAnd.getCondTerm().struct;
@@ -655,9 +691,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 
 	@Override
 	public void visit(CondOr condOr) {
+		condOr.struct = null;
+		if (condOr.getCondTerm().struct == null || condOr.getCondition().struct == null) {
+			// Error happened earlier.
+			return;
+		}
 		if (!condOr.getCondition().struct.equals(boolType) || !condOr.getCondTerm().struct.equals(boolType)) {
 			report_error("Condition terms aren't both boolean!", condOr);
-			condOr.struct = null;
 			return;
 		}
 		condOr.struct = condOr.getCondition().struct;
@@ -717,6 +757,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		}
 		//currParameters already set in ActPars 
 		if (!areParametersCompatible(method)) {
+			currParameters.clear();
 			report_error("Incompatible parameter types in method call!", designMethCall);
 			return;
 		}

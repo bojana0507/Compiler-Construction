@@ -15,13 +15,15 @@ import rs.ac.bg.etf.pp1.ast.Program;
 import rs.ac.bg.etf.pp1.ast.SyntaxNode;
 import rs.ac.bg.etf.pp1.util.Log4JUtils;
 import rs.etf.pp1.mj.runtime.Code;
+import rs.etf.pp1.mj.runtime.Run;
+import rs.etf.pp1.mj.runtime.disasm;
 import rs.etf.pp1.symboltable.Tab;
 import rs.etf.pp1.symboltable.concepts.*;
 
 public class Compiler {
 
 	static {
-		DOMConfigurator.configure(Log4JUtils.instance().findLoggerConfigFile());
+		DOMConfigurator.configure(Log4JUtils.instance().findLoggerConfigFile());//DOMConfigurator.configure("config/log4j.xml");
 		Log4JUtils.instance().prepareLogFile(Logger.getRootLogger());
 	}
 	
@@ -64,12 +66,14 @@ public class Compiler {
         	CodeGenerator codeGenerator = new CodeGenerator();
         	prog.traverseBottomUp(codeGenerator);
         	Code.write(new FileOutputStream(objFile));
-//	        if (cmd.isDebug()) { nez je l ovo ima smisla
-//				disasm.main(argv);
-//			}
-//			if (cmd.isRun()) {
-//				Run.main(argv);
-//			}
+        	if (args.length == 3) {
+		        if (args[2].equals("--debug")) { 
+					disasm.main(new String[] {args[1]});
+				}
+				if (args[2].equals("--run")) {
+					Run.main(new String[] {args[1]});
+				}
+        	}
 	        log.info("Compilation successful!");
 		} catch (FileNotFoundException e) {
 			log.error("Source file [" + sourceCode.getAbsolutePath() + "] missing!");
