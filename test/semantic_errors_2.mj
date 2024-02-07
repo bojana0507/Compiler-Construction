@@ -1,0 +1,71 @@
+program p1 
+	
+	namespace mojNamespace{
+		int mojaProm;
+		{}
+	}
+
+
+    char c;
+    // greska nije dobar tip
+    const int t = true;
+    
+    
+    {
+    void main()
+    	// greska nije sss tip podatka 
+    	sss t;
+	    int r;
+	    char ch[];
+    {
+        read(c);
+        
+        r = 111;
+        
+        // greska ne postoji namespace nekiNamespace
+        nekiNamespace::l = 5;
+
+        // greska tipovi razliciti
+        r = 'a';
+
+		// greska ch je niz i nisu kompatibilni
+		ch = r;
+		
+        ch = new char[11];
+        
+        mojNamespace::mojaProm = 5;
+
+        ch[0] = 'g';
+
+        // greska tipovi;
+        ch[1] = 123;
+
+        // greska asdf mora biti definisano pre
+        asdf();
+	
+        print(c);
+    }
+
+
+    void asdf() 
+    	int k;
+    	bool s[];
+    {
+    	// greska nijeu for petlji
+    	break;
+    	
+    	// nije dobrog tipa
+    	read(s);
+    	
+    	// greska k nije bool tipa
+    	if(k){
+    		k = 45;
+    	}
+    	
+    	if(s[0]){
+    		k = 6;
+    	}
+    	
+        k = 1233;
+    }
+}

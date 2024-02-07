@@ -1,0 +1,54 @@
+program Test
+	//Greska zbog y = 'j'
+	int xx;
+	const int x = 4, y = 'j';
+	{
+		int s(){
+			//greska x nije bool
+			if(x)return x;
+		}
+		
+		void funk(char p[], int l){
+		
+		}
+		
+		void main()
+		char p;
+		int i;
+		int ti[];
+		char pp[];
+		{
+			//greska nije dobar tip
+			p++;
+			p = 'j';
+			// Greska continue izvan for petlje
+			continue;
+			
+			for(i = 0; i < x; i++){
+				print(i);
+				if(i == 4) break;
+			}
+			
+			// Greska jer je pp niz
+			read(pp);
+			print(p, 2);
+			i = len(pp);
+			
+			// Greska u broju parametra
+			i = s(pp);
+			
+			//Greska tip mora biti int izmedju []
+			pp = new char[ti];
+			
+			//Greska u tipu parametra
+			funk(p, i);
+			
+			//Promenljiva nije tipa niz
+			i[1] = 1;
+			
+			// Greska fale argumenti
+			funk(pp);
+		}
+		
+	
+	}

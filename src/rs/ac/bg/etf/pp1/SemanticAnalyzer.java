@@ -80,7 +80,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		for (int i = 0; i < formParams.size(); ++i) {
 			Obj formParam = formParams.get(i);
 			int pos = formParam.getFpPos();
-			if (pos == 0) { // a local variable, not formal parameter
+			if (pos == 0) { // a universe function parameter or just a local variable otherwise
 				if (method.getName().equals("ord")) {
 					if (!currParameters.get(0).equals(Tab.charType)) {
 						return false;
@@ -247,7 +247,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	// VarDeclSingle ::=
 	@Override
 	public void visit(SingleVarDecl varDecl) {
-		Struct varType = varDecl.getVarArr().struct; // the info if it is an array and it's type set
+		Struct varType = varDecl.getVarArr().struct; // the info if it is an array and its type set
 		Obj varTypeObj = Tab.find(currNamespace + varDecl.getName());
 		if (varTypeObj != Tab.noObj) {
 			if (currMethod == null) {
@@ -308,7 +308,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		currType = null;
 		Tab.openScope();
 		if (currClass != null) {
-			addParam(methName, currNamespace+"this", currClass.getType());
+			addParam(methName, currNamespace+"this", currClass.getType()); // C lvl, unused
 		} 
 		else if (methName.getMethName().equalsIgnoreCase("main")) {
 			if (currMethod.getType() != Tab.noType) {
@@ -434,6 +434,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	}
 	@Override
 	public void visit(CondFactFor condFactFor) {
+		if (condFactFor.getCondFact().struct == null) {
+			// Error happened earlier.
+			return;
+		}
 		if (!condFactFor.getCondFact().struct.equals(boolType)) {
 			report_error("Condition in for loop isn't boolean!", condFactFor);
 			return;
@@ -443,7 +447,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	// Statement ::= if parts
 	@Override
 	public void visit(StmntIfElse stmntIfElse) {
-		if (errorDetected) {
+		if (stmntIfElse.getCondition().struct == null) {
 			// Error happened earlier.
 			return;
 		}
@@ -548,6 +552,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			factorNewArrRef.struct = null;
 			return;
 		}
+		if (factorNewArrRef.getExpr().struct == null) {
+			// Error happened earlier.
+			return;
+		}
 		if (!factorNewArrRef.getExpr().struct.equals(Tab.intType)) {
 			report_error("New array size isn't an integer!", factorNewArrRef);
 			factorNewArrRef.struct = null;
@@ -648,6 +656,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	public void visit(CondRelops condRelops) {
 		Struct expr1Obj = condRelops.getExpr().struct;
 		Struct expr2Obj = condRelops.getExpr1().struct;
+		if (expr1Obj == null || expr2Obj == null) { //no case where null is really used for comparing, Tab.nullType is used
+			// Error happened earlier.
+			return;
+		}
 		if (!(expr1Obj.compatibleWith(expr2Obj))) {
 			report_error("Expressions aren't compatible to compare!", condRelops);
 			condRelops.struct = null;
@@ -725,12 +737,16 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	@Override
 	public void visit(DesignInc designInc) {
 		Obj designObj = designInc.getDesign().obj;
+		if (designObj == null) {
+			// Error happened earlier.
+			return;
+		}
 		if (designObj.getKind() != Obj.Var && designObj.getKind() != Obj.Elem && designObj.getKind() != Obj.Fld) {
 			report_error("Designator " + designObj.getName() + " can't be incremented due to kind!", designInc);
 			return;
 		}
 		if (!designObj.getType().equals(Tab.intType)) {
-			report_error("Designator to increment " + designObj.getName() + "isn't an integer!", designInc);
+			report_error("Designator to increment " + designObj.getName() + " isn't an integer!", designInc);
 			return;
 		}
 	}
@@ -738,25 +754,33 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	@Override
 	public void visit(DesignDec designDec) {
 		Obj designObj = designDec.getDesign().obj;
+		if (designObj == null) {
+			// Error happened earlier.
+			return;
+		}
 		if (designObj.getKind() != Obj.Var && designObj.getKind() != Obj.Elem && designObj.getKind() != Obj.Fld) {
 			report_error("Designator " + designObj.getName() + " can't be decremented due to kind!", designDec);
 			return;
 		}
 		if (!designObj.getType().equals(Tab.intType)) {
-			report_error("Designator to decrement " + designObj.getName() + "isn't an integer!", designDec);
+			report_error("Designator to decrement " + designObj.getName() + " isn't an integer!", designDec);
 			return;
 		}
 	}
 	
 	@Override
 	public void visit(DesignMethCall designMethCall) {
-		Obj method = designMethCall.getDesign().obj;
-		if (method.getKind() != Obj.Meth) {
-			report_error(method.getName() + "cannot be called, not a method", designMethCall);
+		Obj methodObj = designMethCall.getDesign().obj;
+		if (methodObj == null) {
+			// Error happened earlier.
+			return;
+		}
+		if (methodObj.getKind() != Obj.Meth) {
+			report_error(methodObj.getName() + "cannot be called, not a method", designMethCall);
 			return;
 		}
 		//currParameters already set in ActPars 
-		if (!areParametersCompatible(method)) {
+		if (!areParametersCompatible(methodObj)) {
 			currParameters.clear();
 			report_error("Incompatible parameter types in method call!", designMethCall);
 			return;
@@ -769,6 +793,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		Obj designsDst = designMultiAssignment.getDesigns().obj;
 		Obj designArrDst = designMultiAssignment.getDesign().obj;
 		Obj designArrSrc = designMultiAssignment.getDesign1().obj;
+		if (designsDst == null || designArrDst == null || designArrSrc == null) {
+			// Error happened earlier.
+			return;
+		}
 		if (designArrSrc.getType().getKind() != Struct.Array) {
 			report_error("Value on the right side isn't of array type!", designMultiAssignment);
 			return;
@@ -777,7 +805,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			report_error("Value of * on the left side isn't of array type!", designMultiAssignment);
 			return;
 		}
-		if (designsDst == null) {
+		if (designsDst == null || (!designsDst.getType().equals(Tab.noObj.getType()) && !designArrSrc.getType().getElemType().assignableTo(designsDst.getType()))) {
 			report_error("Values on the left side aren't of the right kind or have different types!", designMultiAssignment);
 			return;
 		}
@@ -835,7 +863,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	}
 	@Override
 	public void visit(NoDesignsList noDesignsList) {
-		noDesignsList.obj = Tab.noObj;
+		noDesignsList.obj = Tab.noObj; // not an error but has no value, marked this way
 	}
 	//=================================================================================
 	// ActParsList ::=	

@@ -1,0 +1,78 @@
+//    10
+// a    5
+//       2
+//         a
+//           4
+//            5
+
+program p
+
+namespace ludi{
+const int pet = 5, c3 = 8;
+const char c = 'f';
+int a, b;
+{
+	int k (int m) int y; {
+		m = 5;
+		return m+2;
+	}
+}
+}
+
+int x, y;
+const int pet = 5;
+const char c = 'f';
+
+{
+	
+	int k () int c; {
+		c = 5;
+		print(chr(c));
+		return c+2;
+	}
+	
+	int k2() {
+		y = 2;
+		x = y + 2;
+		y = k() + 3;
+		print(y);
+		return 0;
+	}
+	void f(char ch, int a, int args[])
+		int x;
+		int arr[];
+	{
+		print(eol);
+		print(ch);
+		print(a);
+		arr = new int[2];
+		//[,a,,*arr] = args;
+		//[a,ch,,*arr] = args; //greska jer nisu isti tip levo pojedinacni
+		//[,ch,,*arr] = args; //greska jer nisu isti tip levo s nizovima
+		//[,a,,*a] = args; //greska jer nije niz *ovaj
+		[,,,*arr] = args; //radi bez greske, samo u ispisu 3. linija 5 umesto 2
+		x = a;
+		print(eol);
+		print(x, 7);
+		print(eol);
+		print(ch, 9);
+		print(eol);
+		print(arr[0], 11);
+		print(eol);
+		print(arr[1], 12);
+	}
+	
+	void main() int x, i; bool b; int arr[];
+	{
+		b = true;
+		x = k2();
+		arr = new int[5];
+		arr[0] = 1;
+		arr[1] = 2;
+		arr[2] = 3;
+		arr[3] = 4;
+		arr[4] = 5;
+		
+		f('a', 5, arr);
+	}
+}

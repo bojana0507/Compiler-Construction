@@ -1,0 +1,41 @@
+//     0,    1,    1,    2,    3,    5,    8,   13,   21,   34
+program fibonacci
+
+namespace Math{
+	{
+	    int fib(int n)
+	    {
+	        if (n <= 1) return n;
+	        return fib(n - 1) + fib(n - 2);
+	    }
+	}
+}
+
+int i;
+int fibArray[];
+
+{
+    void main()
+    {
+    	fibArray = new int[10];
+        for (i = 0; i < 10; i++)
+        {
+            fibArray[i] = Math::fib(i);
+        }
+
+        for (i = 0; i < 10; i++)
+        {
+            if (i < 9)
+            {
+                print(fibArray[i]);
+                print(',');
+            }
+            else
+            {
+                print(fibArray[i]);
+            }
+        }
+
+		print(eol);
+    }
+}

@@ -1,0 +1,60 @@
+program MJProgram
+
+	namespace sizes{
+		const int tableSize = 10;
+		int sg;
+		char ck;
+		{
+			void tvoja()
+				char sg;
+			{
+				sg = 'k';
+			}
+			
+			int moja()
+			{
+				tvoja();
+				print(sg);
+				return 2;
+			}
+		}
+	}
+	
+	int x,u  ,z[], uu[];
+	const int id = 0, y = 7;
+	const char j = 'j';
+
+{
+	
+	int k(int u, int uu) 
+		char uj;
+	{
+		sizes::moja();
+		uj = '1';
+		u = 4;
+		if(j == 'c'){
+			x = 2;
+		}else{
+			if( x==0){
+			{}
+			}
+			x = 1;
+		}
+		return 1;
+	}
+	
+	int neka_funks(int uu){
+		return ord('1');
+	}
+	
+	void main() 
+		char c;
+	{
+		[u, u, z[1], *z]=uu;
+		z[2]++;
+		z[1] = 1;
+		if(y == z[1]) return;
+		k(id, u);
+		return;
+	}
+}

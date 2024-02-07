@@ -1,0 +1,36 @@
+// -8   -2    6
+// 4 	8
+program testSveFaze
+int bodovi;
+int bodovi2;
+{
+
+	int k () int c; {
+		c = 1;
+		return c+2;
+	}
+
+	void main()
+		int niz[];
+		int y, x;
+	{
+	    bodovi = -5 - 3;
+	    print (bodovi);
+	    bodovi2=-(5-3);
+	    print(bodovi2);
+	    
+	    niz = new int[5];
+	    
+	    y = 2;
+		x = y + 2;
+		y = k() + 3;
+		print(y);
+		
+		niz[0] = x;
+		niz[1] = k()+5;
+		
+		print(eol);
+		print(niz[0]);
+		print(niz[1]);
+	}
+}

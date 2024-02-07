@@ -77,7 +77,6 @@ public class CodeGenerator extends VisitorAdaptor {
 	private ArrayDeque<List<List<Integer>>> patchesIf = new ArrayDeque<>();
 	private ArrayDeque<List<List<Integer>>> patchesFor = new ArrayDeque<>();
 	private List<Obj> arrayAssignDests= new ArrayList<>();
-	private List<Obj> arrayAssignArrayDrdy= new ArrayList<>();
 	private int condLevels = 4;
 	
 	Logger log = Logger.getLogger(getClass());
@@ -88,10 +87,10 @@ public class CodeGenerator extends VisitorAdaptor {
 		Class<? extends SyntaxNode> parentClass = design.getParent().getClass();
 		if (
 		parentClass.equals(DesignArrayAccess.class)
+		|| parentClass.equals(FactorDesign.class)
+		|| parentClass.equals(DesignFieldAccess.class)// C lvl, unused
 		|| parentClass.equals(DesignInc.class)
 		|| parentClass.equals(DesignDec.class)
-		|| parentClass.equals(FactorDesign.class)
-		|| parentClass.equals(DesignFieldAccess.class)
 		) {
 			return true;
 		}
@@ -162,7 +161,7 @@ public class CodeGenerator extends VisitorAdaptor {
 		}
 	}
 	//=================================================================================
-	// Statement ::= (A lvl)
+	// Statement ::= (B lvl)
 	public void visit(StmntPrint stmntPrint){
 		if(stmntPrint.getExpr().struct.equals(Tab.intType)){
 			//Code.loadConst(5); done in PrintExtraArgs 
@@ -200,11 +199,11 @@ public class CodeGenerator extends VisitorAdaptor {
 		Code.put(Code.exit);
 		Code.put(Code.return_);
 	}
-	
+	//=================================================================================
 	@Override
 	public void visit(StmntIfElse stmntIfElse) {
-		for (Integer i : patchesIf.peek().get(3)) {
-			Code.fixup(i);
+		for (Integer i : patchesIf.peek().get(3)) { 
+			Code.fixup(i); // after whole if-else
 		}
 		patchesIf.peek().get(3).clear();
 		patchesIf.pop();
@@ -212,7 +211,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	@Override
 	public void visit(BeforeIf beforeIf) {
-		List<List<Integer>> newIfElseBlock = new ArrayList<>();
+		List<List<Integer>> newIfElseBlock = new ArrayList<>();	//init new if-else-jump locations
 		for (int i = 0; i < condLevels; ++i)
 			newIfElseBlock.add(new ArrayList<Integer>());
 		patchesIf.push(newIfElseBlock);
@@ -230,30 +229,30 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	@Override
 	public void visit(BeforeElse beforeElse) {
-		Code.putJump(0); //then branch happened -> jump to adr(after if)
+		Code.putJump(0); //then branch happened -> jump to adr(after whole if-else)
 		patchesIf.peek().get(3).add(Code.pc - 2);
 		for (Integer i : patchesIf.peek().get(2)) {
-			Code.fixup(i);
+			Code.fixup(i); //else statements start
 		}
 		patchesIf.peek().get(2).clear();
 	}
-
+	//=================================================================================
 	@Override
 	public void visit(StmntForCond stmntForCond) {
 		for (Integer i : patchesFor.peek().get(2)) {
-			Code.putJump(i); //loop back to (;;here)
+			Code.putJump(i); //jump loop back to - for(;;here)stmnts;
 		}
 		patchesFor.peek().get(2).clear();
 		for (Integer i : patchesFor.peek().get(0)) {
-			Code.fixup(i);
+			Code.fixup(i); //we are here to end the whole loop - for(;;)stmnts;here
 		}
 		patchesFor.peek().get(0).clear();
 		patchesFor.pop();
 	}
 	
 	@Override
-	public void visit(BeforeFor beforeFor) {
-		List<List<Integer>> newForBlock = new ArrayList<>();
+	public void visit(BeforeFor beforeFor) { 
+		List<List<Integer>> newForBlock = new ArrayList<>(); // init new for-loop-jump locations
 		for (int i = 0; i < condLevels; ++i)
 			newForBlock.add(new ArrayList<Integer>());
 		patchesFor.push(newForBlock);
@@ -261,45 +260,45 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	@Override
 	public void visit(BeforeCond beforeCond) {
-		patchesFor.peek().get(3).add(Code.pc); // jump here to check if new loop(;here;)
+		patchesFor.peek().get(3).add(Code.pc); // we are here to check if new iter - for(;here;)stmnts;
 	}
 	
 	@Override
 	public void visit(NoCondFor noCondFor) {
-		Code.putJump(0); // jump to loop start
+		Code.putJump(0); // cond true -> jump to loop start - for(;;)here statements;
 		patchesFor.peek().get(1).add(Code.pc-2);
-		patchesFor.peek().get(2).add(Code.pc); // jump here to do the after loop statements(;;here)
+		patchesFor.peek().get(2).add(Code.pc); // we are here to do the after iter statements - for(;;here)stmnts;
 	}
 	
 	@Override
 	public void visit(CondFactFor condFactFor) {
-		Code.putJump(0); // jump to loop start
+		Code.putJump(0); // cond true -> jump to loop start - for(;;)here statements;
 		patchesFor.peek().get(1).add(Code.pc-2);
-		patchesFor.peek().get(2).add(Code.pc); // jump here to do the after loop statements(;;here)
+		patchesFor.peek().get(2).add(Code.pc); // we are here to do the after iter statements - for(;;here)stmnts;
 	}
 	
 	@Override
 	public void visit(LoopStart loopStart) {
 		for (Integer i : patchesFor.peek().get(3)) {
-			Code.putJump(i); // jump to before cond to check
+			Code.putJump(i); // jump to before cond to check - for(;here;)stmnts;
 		}
 		patchesFor.peek().get(3).clear();
 		for (Integer i : patchesFor.peek().get(1)) { 
-			Code.fixup(i); // jump here to start loop statements(;;)here
+			Code.fixup(i); // we are here to start loop statements - for(;;)here stmnts;
 		}
 		patchesFor.peek().get(1).clear();
 	}
 	
 	@Override
 	public void visit(StmntBreak stmntBreak) {
-		Code.putJump(0); // jump to loop start
+		Code.putJump(0); // jump to loop start - for(;;)stmnts;here
 		patchesFor.peek().get(0).add(Code.pc-2);
 	}
 	
 	@Override
 	public void visit(StmntContinue stmntContinue) {
 		for (Integer i : patchesFor.peek().get(2)) {
-			Code.putJump(i); //loop back to (;;here)
+			Code.putJump(i); // jump loop back to - for(;;here)stmnts;
 		}
 	}
 	//=================================================================================
@@ -321,10 +320,13 @@ public class CodeGenerator extends VisitorAdaptor {
 	@Override
 	public void visit(DesignArrayAccess designArrayAccess) {
 		if (putDesignToCode(designArrayAccess)) {
+			if (designArrayAccess.getParent().getClass().equals(DesignInc.class) || designArrayAccess.getParent().getClass().equals(DesignDec.class)) {
+				Code.put(Code.dup2); // prepare one for storing location
+			}
 			Code.load(designArrayAccess.obj);
 		}
 		if (designArrayAccess.getParent().getClass().equals(DesignsListFirstDesign.class) || designArrayAccess.getParent().getClass().equals(DesignsListDesign.class)) {
-			designArrayAccess.obj.setFpPos(-1); //to mark it has it's parameters on stack in multiarr assignment
+			designArrayAccess.obj.setFpPos(-1); // mark elem adr+index+value are on stack before multiarr assignment
 		}
 	}
 	//=================================================================================
@@ -449,16 +451,18 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	@Override
 	public void visit(DesignInc designInc) {
+		Obj designObj = designInc.getDesign().obj;
 		Code.loadConst(1);
 		Code.put(Code.add);
-		Code.store(designInc.getDesign().obj);
+		Code.store(designObj);
 	}
 	
 	@Override
 	public void visit(DesignDec designDec) {
+		Obj designObj = designDec.getDesign().obj;
 		Code.loadConst(1);
 		Code.put(Code.sub);
-		Code.store(designDec.getDesign().obj);
+		Code.store(designObj);
 	}
 	
 	@Override
@@ -521,113 +525,78 @@ public class CodeGenerator extends VisitorAdaptor {
 			arrayAssignDests.remove(arrayAssignDests.size()-1);
 		}
 		
-		loadArr(designArrSrc);
-		Code.put(Code.arraylength);
-		loopArraysAssign = Code.pc;
-		Code.loadConst(1);
-		Code.put(Code.sub);
-		Code.put(Code.dup);
-		Code.loadConst(arrayAssignDests.size());
-		Code.put(Code.sub);
-		Code.put(Code.dup);
-		Code.loadConst(0);
-		Code.putFalseJump(Code.ge, errorAdr);
-		Code.put(Code.dup2);
-		Code.put(Code.pop);
-		loadArr(designArrSrc);
-		Code.put(Code.dup_x1);
-		Code.put(Code.pop);
-		if (isChar) Code.put(Code.baload);
-        else Code.put(Code.aload);
-		loadArr(designArrDst);
-		Code.put(Code.dup_x2);
-		Code.put(Code.pop);
-		if (isChar) Code.put(Code.bastore);
-        else Code.put(Code.astore);
-		Code.put(Code.dup);
-		Code.loadConst(arrayAssignDests.size());
-		Code.put(Code.sub);
-		Code.loadConst(0);
-		Code.putFalseJump(Code.eq, loopArraysAssign);
-		Code.put(Code.pop);
-		
+		///var-fld-elem locations
 		Code.loadConst(arrayAssignDests.size());
 		
 		for (int i = arrayAssignDests.size()-1; i >= 0; --i) {
-			Code.loadConst(1);
-			Code.put(Code.sub);
+			Code.loadConst(1); //...indSrc
+			Code.put(Code.sub); //...indSrc
 			if(arrayAssignDests.get(i) == null) {
 				continue;
 			}
 			if(arrayAssignDests.get(i).getFpPos() == -1) { //field in arr, it's adr and ind already on stack
-				Code.put(Code.dup_x2);
-				loadArr(designArrSrc);
-				Code.put(Code.dup_x1);
-				Code.put(Code.pop);
+				Code.put(Code.dup_x2); //...indSrc, adrDst, indDst, indSrc
+				loadArr(designArrSrc); //...indSrc, adrDst, indDst, indSrc, adrSrc
+				Code.put(Code.dup_x1); //...indSrc, adrDst, indDst, adrSrc, indSrc, adrSrc
+				Code.put(Code.pop); //...indSrc, adrDst, indDst, adrSrc, indSrc
 				if (isChar) Code.put(Code.baload);
-		        else Code.put(Code.aload);
+		        else Code.put(Code.aload); //...indSrc, adrDst, indDst, val
 				if (isChar) Code.put(Code.bastore);
-		        else Code.put(Code.astore);
+		        else Code.put(Code.astore); //...indSrc
 			}
 			else {
-				loadArr(designArrSrc);
-				Code.put(Code.dup2);
-				Code.put(Code.pop);
+				loadArr(designArrSrc); //...indSrc, adrSrc
+				Code.put(Code.dup2); //...indSrc, adrSrc, indSrc, adrSrc
+				Code.put(Code.pop); //...indSrc, adrSrc, indSrc
 				if (isChar) Code.put(Code.baload);
-		        else Code.put(Code.aload);
-				Code.store(arrayAssignDests.get(i));
+		        else Code.put(Code.aload); //...indSrc, val
+				Code.store(arrayAssignDests.get(i)); //...indSrc
 			}
 		}
-		Code.put(Code.pop);
-		arrayAssignDests.clear();
-//		for (Obj dest : arrayAssignDests) {
-//			Code.put(Code.dup); //one for check, other for next loop inc and check,...
-//			loadArr(designArrSrc);
-//			Code.put(Code.arraylength);
-//			Code.putFalseJump(Code.ne, errorAdr);
-//			if(dest != null) {
-//				loadArr(designArrSrc);
-//				Code.loadConst(i);
-//				if (isChar) Code.put(Code.baload);
-//		        else Code.put(Code.aload);
-//				Code.store(dest);
-//			}
-//			Code.loadConst(1);
-//			Code.put(Code.add);
-//			++i;
-//		}
-//		arrayAssignDests.clear();
-//		loadArr(designArrSrc);
-//		Code.put(Code.arraylength);
-//		Code.putFalseJump(Code.ne, errorAdr); //nothing left for arrDst
-//		
+		Code.put(Code.pop);	//clean stack
+
+		///arr locations
+		loadArr(designArrSrc);
+		Code.put(Code.arraylength);
+		Code.put(Code.dup); //one for error len check
+		Code.loadConst(arrayAssignDests.size());
+		Code.put(Code.sub);
+		loadArr(designArrDst);
+		Code.put(Code.arraylength);
+		Code.putFalseJump(Code.le, errorAdr); // error if more things to assign then space to assign to
+		
+		loopArraysAssign = Code.pc; //index arrSrc on stack(first iter = len)
+		Code.loadConst(1);
+		Code.put(Code.sub);	//get index arrSrc
+		Code.put(Code.dup);	//indSrc, indSrc
+		Code.loadConst(arrayAssignDests.size());
+		Code.put(Code.sub);	//indSrc, indDst
+//		Code.put(Code.dup); already checked before
 //		Code.loadConst(0);
-//		loopArraysAssign = Code.pc;
-//		loadArr(designArrDst);
-//		Code.put(Code.dup2);
-//		Code.put(Code.pop); //only need the dst counter
-//		Code.put(Code.dup); //for calculating the src index
-//		Code.loadConst(i);
-//		Code.put(Code.add);
-//		loadArr(designArrSrc);
-//		Code.put(Code.dup2);
-//		Code.put(Code.pop); //only need the src index
-//		if (isChar) Code.put(Code.baload);
-//        else Code.put(Code.aload);
-//		Code.put(Code.dup_x1); // copy the value to store above the excess index, below the dst arr+ind
-//		Code.put(Code.pop); // remove the copied value
-//		Code.put(Code.pop); // remove excess index
-//		if (isChar) Code.put(Code.bastore);
-//        else Code.put(Code.astore);
-//		Code.loadConst(1);
-//		Code.put(Code.add); //inc the dst counter 
-//		Code.put(Code.dup);
-//		loadArr(designArrDst);
-//		Code.put(Code.arraylength);
-//		Code.putFalseJump(Code.ge, loopArraysAssign);
-//		Code.put(Code.pop);
+//		Code.putFalseJump(Code.ge, errorAdr);
+		Code.put(Code.dup2); //indSrc, indDst, indSrc, indDst
+		Code.put(Code.pop); //indSrc, indDst, indSrc
+		loadArr(designArrSrc); //indSrc, indDst, indSrc, adrSrc
+		Code.put(Code.dup_x1); //indSrc, indDst, adrSrc, indSrc, adrSrc
+		Code.put(Code.pop); //indSrc, indDst, adrSrc, indSrc
+		if (isChar) Code.put(Code.baload);
+        else Code.put(Code.aload); //indSrc, indDst, val
+		loadArr(designArrDst); //indSrc, indDst, val, adrDst
+		Code.put(Code.dup_x2); //indSrc, adrDst, indDst, val, adrDst
+		Code.put(Code.pop); //indSrc, adrDst, indDst, val
+		if (isChar) Code.put(Code.bastore);
+        else Code.put(Code.astore);  //indSrc
+		Code.put(Code.dup); //indSrc, indSrc
+		Code.loadConst(arrayAssignDests.size()); //indSrc, indSrc, offset
+		Code.put(Code.sub); //indSrc, indDst
+		Code.loadConst(0); //indSrc, indDst, 0
+		Code.putFalseJump(Code.eq, loopArraysAssign); //indSrc
+		Code.put(Code.pop); //clean stack
+
+		arrayAssignDests.clear(); // for next assignment
 	}
 	
+	// Helper
 	void loadArr (Obj o) {
 		if (o.getLevel()==0) { // global variable 
 			Code.put(Code.getstatic); Code.put2(o.getAdr()); 

@@ -1,0 +1,99 @@
+//-47    1    7    1    3   -1    0    1    3
+// 4    5    6    7
+// 4    5    6    7    0
+// 4    0    6    7
+// 0    3    6
+program Test
+	const int N = 2;
+	int g;
+	{
+		int k(int c)
+			int x;
+		{
+			print(c);
+			return 1;
+		}
+	
+		void main()
+			int x, y, z;
+			int niz[];
+			int niz2[];
+			bool sbo;
+		{
+			g = N;
+			y = 53;
+			g++;
+			x = -y + g * N;
+			print(x);
+			niz = new int[N];
+			niz[0] = niz[1];
+			niz[1]++;
+			print(niz[1]);
+			k(7);
+			sbo = true;
+			print(sbo);
+			
+			if(N == 4 || sbo){
+				print(3);
+			}else{
+				print(7);
+			}
+			
+			if(sbo && N == 2)
+				if(N == 5) print(1);
+				else print(-1);
+			
+			for(x = 0; x < 4; x++){
+				if(x == 2) continue;
+				print(x);
+			}
+			
+			niz2 = new int[4];
+			niz = new int[5];
+			
+			niz2[0] = 4;
+			niz2[1] = 5;
+			niz2[2] = 6;
+			niz2[3] = 7;
+			niz[0] = 3;
+			niz[1] = 3;
+			
+			[x,y,*niz] = niz2;
+			
+			print(eol);
+			print(x);
+			print(y);
+			print(niz[0]);
+			print(niz[1]);
+			
+			
+			[*niz] = niz2;
+			
+			print(eol);
+			print(niz[0]);
+			print(niz[1]);
+			print(niz[2]);
+			print(niz[3]);
+			print(niz[4]);
+			
+			y = 0;
+			
+			[x,,*niz] = niz2;
+			
+			print(eol);
+			print(x);
+			print(y);
+			print(niz[0]);
+			print(niz[1]);
+			
+			print(eol);
+			
+			for(;y < 10;){
+				if(y % 3 == 0)print(y);
+				if(y == 8)break;
+				y++;
+			}
+			
+		}
+	
+	}

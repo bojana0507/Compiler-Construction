@@ -1,0 +1,64 @@
+//     0    2    3    3    3    4    6    8    9    9    9    9    9    9    9    9    9x
+
+program p
+
+namespace dodele {
+	int arr1[], arr2[], a, b;
+	{
+		void test(){
+			arr1 = new int[1];
+			arr2 = new int[3];
+			arr2[0] = 1;
+			arr2[1] = 2;
+			[a,*arr1] = arr2;
+			print(a);
+			for (b = 0; b < len(arr1); b++){
+				print(arr1[b]);
+			}
+		}
+	
+	}
+}
+
+int x, y, j;
+const int pet = 5;
+const char c = 'f';
+
+
+{
+
+	int fib(int n) {
+	    if (n <= 1)
+	        return n;
+	    else
+	        return fib(n - 1) + fib(n - 2);
+	}
+	
+	void main()
+		int x, i;
+		bool b;
+		int arr[];
+		
+	{
+		x = 5;
+		
+		if(x == 5 && b == false){
+			for(i = 0; i < 10; i++){
+				if(i % 2 == 0){
+					print(i);
+				}else if (i%3 == 0){
+					for (j = i; j > 0; j--){
+						print(i);
+						//[,*i]=j; sem error
+					}
+					if (i != 9) continue;
+					else print('x');
+				}
+			}
+		}else{
+			print('k');
+		}
+		print(eol);
+		dodele::test();
+	}
+}

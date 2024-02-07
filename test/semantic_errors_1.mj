@@ -1,0 +1,29 @@
+program p1 
+    char c;
+    {
+    void main() 
+    int r;
+    {
+        read(c);
+        
+        r = 111;
+
+        // greska k nije definisano  u scopeu
+        k = 1;
+
+        // greska metoda nije definisana
+        add();
+
+        print(c);
+    }
+
+
+    void asdf() 
+    int k;
+    {
+        k = 1233;
+
+        // nije u scopeu error
+        r = 1;
+    }
+}

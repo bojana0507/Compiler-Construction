@@ -1,3 +1,6 @@
+// f 
+//    10    6   16
+// 1
 program p
 
 int x, y;
@@ -8,17 +11,18 @@ const char c = 'f';
 	int f() int a, b; int d[];
 	{
 		a = 10;
-		return a;
+		//return a;
 		print(c,1);
 		print(eol);
 		print(a);
 		return x;
 	}
 	
-	void main() int x, i; bool b; int arr[];
+	void main() int m, i; bool b; int arr[];
 	{
 		arr = new int[5];
-		x = arr[2];
+		arr[0] = 6;
+		[x,,*arr] = arr; //is allowed?
 		b = true;
 		print(f());
 		print((x-1)+(x+5));

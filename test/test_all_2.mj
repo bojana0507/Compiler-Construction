@@ -1,0 +1,48 @@
+// input 1 2 3 0
+// out m    1m    2m    3m    0
+
+program P
+	const int size = 10;
+	int kkkk, cccc[];
+{
+	int f(char ch, int a, int arg)
+	int x;
+	{
+		x = 1;//arg;
+		return 1;
+	}
+	
+	void main()
+	int x, i;
+	char c;
+	{ 
+		cccc = new int[11];
+		for (i = 0; i<size; i++)
+		{
+			cccc[1] = 1;
+		}
+		x = f(c, x, i);
+		
+		for (;x > 0;)
+		{
+			if (0 <= x && x < size)
+			{
+		    	cccc[1] = 1;
+		    	print('m');
+			} else
+			if (-size < x && x < 0)
+			{
+			    cccc[0] = 11;
+			    cccc[1]++;
+			    cccc[1]--;
+			    x = cccc[1] + cccc[2] * 2;
+			    x++;
+			    x--;
+			    print('n');
+			}
+			read(x);
+			
+			print(x);
+		} 
+	}
+}

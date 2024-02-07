@@ -1,0 +1,42 @@
+//	 0    0    2    2    4    4    6    6    8    8
+//	 5
+
+program p
+
+int x, y;
+const int pet = 5;
+const char c = 'f';
+
+{
+
+	int fib(int n) {
+	    if (n <= 1)
+	        return n;
+	    else
+	        return fib(n - 1) + fib(n - 2);
+	}
+	
+	void main()
+		int x, i;
+		bool b;
+		int arr[];
+		
+	{
+		x = 5;
+		
+		if(x == 5 && b == false){
+			for(i = 0; i < 10; i++){
+				if(i % 2 == 0){
+					print(i);
+				}else{
+					print(i-1);
+				}
+			}
+		}else{
+			print('k');
+		}
+		print(eol);
+		print(fib(5));
+	}
+
+}
